@@ -1,4 +1,4 @@
-package com.abcdish.spring;
+package com.innitsocial.abcdish;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
