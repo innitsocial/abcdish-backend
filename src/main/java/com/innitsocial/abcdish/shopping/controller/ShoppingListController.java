@@ -1,6 +1,7 @@
 package com.innitsocial.abcdish.shopping.controller;
 
 import com.innitsocial.abcdish.common.security.SecurityUtils;
+import com.innitsocial.abcdish.shopping.dto.ShoppingCheckoutOptionResponse;
 import com.innitsocial.abcdish.shopping.dto.ShoppingListRequest;
 import com.innitsocial.abcdish.shopping.dto.ShoppingListResponse;
 import com.innitsocial.abcdish.shopping.service.ShoppingListService;
@@ -19,6 +20,12 @@ public class ShoppingListController {
     @GetMapping
     public List<ShoppingListResponse> getItems() {
         return service.getItems(SecurityUtils.currentUserId());
+    }
+
+
+    @GetMapping("/checkout-options")
+    public List<ShoppingCheckoutOptionResponse> getCheckoutOptions() {
+        return service.getCheckoutOptions(SecurityUtils.currentUserId());
     }
 
     @PostMapping

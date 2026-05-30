@@ -23,5 +23,22 @@ spring:
     baseline-on-migrate: true
 
 logging:
+  file:
+    name: ${LOG_FILE:logs/abcdish-backend.log}
   level:
-    org.hibernate.SQL: info
+    root: info
+    com.innitsocial.abcdish: info
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} %-5level [%X{correlationId}] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never

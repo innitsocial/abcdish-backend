@@ -112,8 +112,6 @@ public class AuthService {
 
         createOtp(request.destination(), OtpType.EMAIL, OtpPurpose.LOGIN);
 
-        // TODO: send email here using SES/SendGrid later.
-        System.out.println("ABCDish email OTP sent to: " + request.destination());
     }
 
     public AuthResponse verifyEmailOtp(OtpVerifyRequest request) {
@@ -150,8 +148,6 @@ public class AuthService {
 
         createOtp(request.destination(), OtpType.MOBILE, OtpPurpose.LOGIN);
 
-        // TODO: send SMS here using AWS SNS/Twilio later.
-        System.out.println("ABCDish mobile OTP sent to: " + request.destination());
     }
 
     public AuthResponse verifyMobileOtp(OtpVerifyRequest request) {

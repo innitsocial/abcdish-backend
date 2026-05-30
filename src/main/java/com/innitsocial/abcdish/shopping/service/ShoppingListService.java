@@ -1,5 +1,7 @@
 package com.innitsocial.abcdish.shopping.service;
 
+import com.innitsocial.abcdish.partners.repository.PartnerStoreRepository;
+import com.innitsocial.abcdish.shopping.dto.ShoppingCheckoutOptionResponse;
 import com.innitsocial.abcdish.shopping.dto.ShoppingListRequest;
 import com.innitsocial.abcdish.shopping.dto.ShoppingListResponse;
 import com.innitsocial.abcdish.shopping.entity.ShoppingListItem;
@@ -14,6 +16,7 @@ import java.util.List;
 public class ShoppingListService {
 
     private final ShoppingListItemRepository repository;
+    private final PartnerStoreRepository partnerStoreRepository;
 
     public List<ShoppingListResponse> getItems(Long userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId)
@@ -42,6 +45,23 @@ public class ShoppingListService {
         }
 
         repository.delete(item);
+    }
+
+
+    public List<ShoppingCheckoutOptionResponse> getCheckoutOptions(Long userId) {
+        List<ShoppingListItem> items = repository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        return partnerStoreRepository.findByActiveTrue()
+                .stream()
+                .map(store -> new ShoppingCheckoutOptionResponse(
+                        store.getId(),
+                        store.getStoreName(),
+                        store.getPostcode(),
+                        store.getWebsiteUrl(),
+                        items.size(),
+                        "Partner checkout integration placeholder. Redirect user to partner store website for now."
+                ))
+                .toList();
     }
 
     private ShoppingListResponse toResponse(ShoppingListItem item) {

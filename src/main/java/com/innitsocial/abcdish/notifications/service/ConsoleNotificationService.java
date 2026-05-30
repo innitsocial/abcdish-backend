@@ -1,23 +1,19 @@
 package com.innitsocial.abcdish.notifications.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class ConsoleNotificationService implements NotificationService {
 
     @Override
     public void sendEmailOtp(String email, String otp, String purpose) {
-        System.out.println("ABCDish EMAIL OTP");
-        System.out.println("To: " + email);
-        System.out.println("Purpose: " + purpose);
-        System.out.println("OTP: " + otp);
+        log.info("ABCDish EMAIL OTP destination={} purpose={} otp={}", email, purpose, otp);
     }
 
     @Override
     public void sendSmsOtp(String mobileNumber, String otp, String purpose) {
-        System.out.println("ABCDish SMS OTP");
-        System.out.println("To: " + mobileNumber);
-        System.out.println("Purpose: " + purpose);
-        System.out.println("OTP: " + otp);
+        log.info("ABCDish SMS OTP destination={} purpose={} otp={}", mobileNumber, purpose, otp);
     }
 }

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/billing")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class BillingController {
 
     private final AppUserRepository appUserRepository;

@@ -13,20 +13,20 @@ spring:
 
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         default_schema: abcdish
 
 logging:
   file:
     name: logs/abcdish-backend.log
   level:
-    org.hibernate.SQL: debug
-    com.innitsocial.abcdish: debug
     root: info
+    com.innitsocial.abcdish: debug
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
     console: "%d{HH:mm:ss} %-5level [%X{correlationId}] %logger{36} - %msg%n"
-
 
 management:
   endpoints:

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/video-views")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class VideoViewController {
 
     private final VideoViewService videoViewService;

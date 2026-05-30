@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/membership")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class MembershipController {
 
     private final AuthService authService;

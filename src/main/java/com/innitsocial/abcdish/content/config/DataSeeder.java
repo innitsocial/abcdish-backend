@@ -5,11 +5,13 @@ import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.repository.CategoryRepository;
 import com.innitsocial.abcdish.content.repository.MealRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
@@ -149,6 +151,6 @@ public class DataSeeder implements CommandLineRunner {
             mealRepository.saveAll(meals);
         }
 
-        System.out.println("ABCDish sample data seeded successfully.");
+        log.info("ABCDish sample data seeded successfully.");
     }
 }
