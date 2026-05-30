@@ -30,6 +30,7 @@ public class UserSessionService {
         return userSessionRepository.findByUserIdAndActiveTrue(userId);
     }
 
+
     public void updateLastSeen(Long userId) {
         List<UserSession> sessions = userSessionRepository.findByUserIdAndActiveTrue(userId);
 
