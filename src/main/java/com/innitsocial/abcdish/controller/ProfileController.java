@@ -1,13 +1,11 @@
 package com.innitsocial.abcdish.controller;
 
 import com.innitsocial.abcdish.config.SecurityUtils;
-import com.innitsocial.abcdish.dto.auth.CommunicationPreferencesRequest;
-import com.innitsocial.abcdish.dto.auth.ProfileResponse;
+import com.innitsocial.abcdish.dto.auth.*;
 import com.innitsocial.abcdish.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import com.innitsocial.abcdish.dto.auth.*;
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/profile")
