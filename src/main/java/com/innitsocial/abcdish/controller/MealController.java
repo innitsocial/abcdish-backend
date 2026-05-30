@@ -1,7 +1,9 @@
 package com.innitsocial.abcdish.controller;
 
+import com.innitsocial.abcdish.dto.MealRequestDto;
 import com.innitsocial.abcdish.entity.Meal;
 import com.innitsocial.abcdish.service.MealService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +28,20 @@ public class MealController {
     }
 
     @PostMapping
-    public Meal createMeal(@RequestBody Meal meal) {
-        return mealService.save(meal);
+    public Meal createMeal(@Valid @RequestBody MealRequestDto request) {
+        return mealService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public Meal updateMeal(
+            @PathVariable Long id,
+            @Valid @RequestBody MealRequestDto request
+    ) {
+        return mealService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteMeal(@PathVariable Long id) {
+        mealService.delete(id);
     }
 }

@@ -1,5 +1,6 @@
 package com.innitsocial.abcdish.service;
 
+import com.innitsocial.abcdish.dto.MealRequestDto;
 import com.innitsocial.abcdish.entity.Meal;
 import com.innitsocial.abcdish.repository.MealRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,50 @@ public class MealService {
                 .orElseThrow(() -> new RuntimeException("Meal not found: " + id));
     }
 
-    public Meal save(Meal meal) {
+    public Meal create(MealRequestDto request) {
+        Meal meal = Meal.builder()
+                .title(request.title())
+                .description(request.description())
+                .imageUrl(request.imageUrl())
+                .videoUrl(request.videoUrl())
+                .duration(request.duration())
+                .complexity(request.complexity())
+                .affordability(request.affordability())
+                .categories(request.categories())
+                .ingredients(request.ingredients())
+                .steps(request.steps())
+                .glutenFree(request.glutenFree())
+                .lactoseFree(request.lactoseFree())
+                .vegan(request.vegan())
+                .vegetarian(request.vegetarian())
+                .build();
+
         return mealRepository.save(meal);
+    }
+
+    public Meal update(Long id, MealRequestDto request) {
+        Meal meal = findById(id);
+
+        meal.setTitle(request.title());
+        meal.setDescription(request.description());
+        meal.setImageUrl(request.imageUrl());
+        meal.setVideoUrl(request.videoUrl());
+        meal.setDuration(request.duration());
+        meal.setComplexity(request.complexity());
+        meal.setAffordability(request.affordability());
+        meal.setCategories(request.categories());
+        meal.setIngredients(request.ingredients());
+        meal.setSteps(request.steps());
+        meal.setGlutenFree(request.glutenFree());
+        meal.setLactoseFree(request.lactoseFree());
+        meal.setVegan(request.vegan());
+        meal.setVegetarian(request.vegetarian());
+
+        return mealRepository.save(meal);
+    }
+
+    public void delete(Long id) {
+        Meal meal = findById(id);
+        mealRepository.delete(meal);
     }
 }
