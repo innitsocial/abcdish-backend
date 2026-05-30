@@ -375,7 +375,7 @@ public class AuthService {
         );
 
         if (recentOtpCount >= 3) {
-            String msg = "Too many OTP requests. Please try again later.";
+            String msg = "Too many OTP requests.";
             throw new RuntimeException(msg);
         }
     }
