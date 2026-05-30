@@ -16,12 +16,12 @@ spring:
         format_sql: false
         default_schema: abcdish
 
+  flyway:
+    enabled: true
+    schemas: abcdish
+    default-schema: abcdish
+    baseline-on-migrate: true
+
 logging:
   level:
     org.hibernate.SQL: info
-
-flyway:
-   enabled: true
-   schemas: abcdish
-   default-schema: abcdish
-   baseline-on-migrate: true
