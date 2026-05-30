@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: Panda
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: abcdish
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+flyway:
+  enabled: true
+  schemas: abcdish
+  default-schema: abcdish
+  baseline-on-migrate: true
