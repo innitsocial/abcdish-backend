@@ -1,0 +1,55 @@
+package com.innitsocial.abcdish.shopping.service;
+
+import com.innitsocial.abcdish.shopping.dto.ShoppingListRequest;
+import com.innitsocial.abcdish.shopping.dto.ShoppingListResponse;
+import com.innitsocial.abcdish.shopping.entity.ShoppingListItem;
+import com.innitsocial.abcdish.shopping.repository.ShoppingListItemRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ShoppingListService {
+
+    private final ShoppingListItemRepository repository;
+
+    public List<ShoppingListResponse> getItems(Long userId) {
+        return repository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public ShoppingListResponse addItem(Long userId, ShoppingListRequest request) {
+        ShoppingListItem item = ShoppingListItem.builder()
+                .userId(userId)
+                .ingredientName(request.ingredientName())
+                .quantity(request.quantity())
+                .purchased(false)
+                .build();
+
+        return toResponse(repository.save(item));
+    }
+
+    public void deleteItem(Long userId, Long itemId) {
+        ShoppingListItem item = repository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Shopping item not found"));
+
+        if (!item.getUserId().equals(userId)) {
+            throw new RuntimeException("You cannot delete this item");
+        }
+
+        repository.delete(item);
+    }
+
+    private ShoppingListResponse toResponse(ShoppingListItem item) {
+        return new ShoppingListResponse(
+                item.getId(),
+                item.getIngredientName(),
+                item.getQuantity(),
+                item.isPurchased()
+        );
+    }
+}

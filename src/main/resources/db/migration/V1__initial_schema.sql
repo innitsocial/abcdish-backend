@@ -129,3 +129,40 @@ CREATE INDEX IF NOT EXISTS idx_video_views_meal
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_video_views_user_meal_month
     ON video_views(user_id, meal_id, view_month);
+-- =========================================================
+-- CONTESTS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS contests (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    prize_description TEXT,
+    status VARCHAR(50) DEFAULT 'DRAFT',
+    starts_at TIMESTAMP,
+    ends_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contest_entries (
+    id BIGSERIAL PRIMARY KEY,
+    contest_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(255),
+    description TEXT,
+    video_url TEXT,
+    thumbnail_url TEXT,
+    votes BIGINT DEFAULT 0,
+    approved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_contest_entries_contest
+        FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_contest_entries_user
+        FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_contest_entries_contest
+    ON contest_entries(contest_id);
+
+CREATE INDEX IF NOT EXISTS idx_contest_entries_user
+    ON contest_entries(user_id);
