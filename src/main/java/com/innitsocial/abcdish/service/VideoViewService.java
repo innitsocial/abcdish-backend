@@ -8,11 +8,13 @@ import com.innitsocial.abcdish.repository.AppUserRepository;
 import com.innitsocial.abcdish.repository.VideoViewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class VideoViewService {
 
     private static final int FREE_MONTHLY_LIMIT = 10;

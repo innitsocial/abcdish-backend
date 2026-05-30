@@ -1,5 +1,6 @@
 package com.innitsocial.abcdish.controller;
 
+import com.innitsocial.abcdish.dto.CategoryResponseDto;
 import com.innitsocial.abcdish.entity.Category;
 import com.innitsocial.abcdish.service.CategoryService;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +17,16 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public List<Category> getAllCategories() {
-        return categoryService.findAll();
+    public List<CategoryResponseDto> getAllCategories() {
+        return categoryService.findAll()
+                .stream()
+                .map(CategoryResponseDto::fromEntity)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Category getCategoryById(@PathVariable String id) {
-        return categoryService.findById(id);
+    public CategoryResponseDto getCategoryById(@PathVariable String id) {
+        return CategoryResponseDto.fromEntity(categoryService.findById(id));
     }
 
     @PostMapping

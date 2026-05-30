@@ -2,6 +2,7 @@ package com.innitsocial.abcdish.controller;
 
 import com.innitsocial.abcdish.dto.auth.*;
 import com.innitsocial.abcdish.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +16,27 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public AuthResponse register(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        return authService.register(
+                request,
+                getDeviceName(httpRequest),
+                getIpAddress(httpRequest)
+        );
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public AuthResponse login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        return authService.login(
+                request,
+                getDeviceName(httpRequest),
+                getIpAddress(httpRequest)
+        );
     }
 
     @PostMapping("/email/request-otp")
@@ -62,5 +77,21 @@ public class AuthController {
     @PostMapping("/logout")
     public void logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request);
+    }
+
+
+    private String getIpAddress(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+
+        return request.getRemoteAddr();
+    }
+
+    private String getDeviceName(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+        return userAgent == null ? "Unknown device" : userAgent;
     }
 }

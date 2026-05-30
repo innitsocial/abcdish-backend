@@ -1,7 +1,7 @@
 package com.innitsocial.abcdish.controller;
 
 import com.innitsocial.abcdish.dto.MealRequestDto;
-import com.innitsocial.abcdish.entity.Meal;
+import com.innitsocial.abcdish.dto.MealResponseDto;
 import com.innitsocial.abcdish.service.MealService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,31 +17,34 @@ public class MealController {
 
     private final MealService mealService;
 
-    @GetMapping
-    public List<Meal> getAllMeals() {
-        return mealService.findAll();
-    }
-
-    @GetMapping("/{id}")
-    public Meal getMealById(@PathVariable Long id) {
-        return mealService.findById(id);
-    }
-
-    @PostMapping
-    public Meal createMeal(@Valid @RequestBody MealRequestDto request) {
-        return mealService.create(request);
-    }
-
-    @PutMapping("/{id}")
-    public Meal updateMeal(
-            @PathVariable Long id,
-            @Valid @RequestBody MealRequestDto request
-    ) {
-        return mealService.update(id, request);
-    }
-
     @DeleteMapping("/{id}")
     public void deleteMeal(@PathVariable Long id) {
         mealService.delete(id);
+    }
+
+    @GetMapping
+    public List<MealResponseDto> getAllMeals() {
+        return mealService.findAll()
+                .stream()
+                .map(MealResponseDto::fromEntity)
+                .toList();
+    }
+
+    @GetMapping("/{id}")
+    public MealResponseDto getMealById(@PathVariable Long id) {
+        return MealResponseDto.fromEntity(mealService.findById(id));
+    }
+
+    @PostMapping
+    public MealResponseDto createMeal(@Valid @RequestBody MealRequestDto request) {
+        return MealResponseDto.fromEntity(mealService.create(request));
+    }
+
+    @PutMapping("/{id}")
+    public MealResponseDto updateMeal(
+            @PathVariable Long id,
+            @Valid @RequestBody MealRequestDto request
+    ) {
+        return MealResponseDto.fromEntity(mealService.update(id, request));
     }
 }

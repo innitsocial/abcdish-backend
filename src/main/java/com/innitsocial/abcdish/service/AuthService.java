@@ -7,12 +7,14 @@ import com.innitsocial.abcdish.repository.OtpCodeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
     private final AppUserRepository appUserRepository;
@@ -23,7 +25,12 @@ public class AuthService {
     private final UserSessionService userSessionService;
     private final NotificationService notificationService;
 
-    public AuthResponse register(RegisterRequest request) {
+
+    public AuthResponse register(
+            RegisterRequest request,
+            String deviceName,
+            String ipAddress
+    ) {
         if ((request.email() == null || request.email().isBlank())
                 && (request.mobileNumber() == null || request.mobileNumber().isBlank())) {
             throw new RuntimeException("Email or mobile number is required");
@@ -58,11 +65,16 @@ public class AuthService {
                 .build();
 
         AppUser savedUser = appUserRepository.save(user);
-
+        userSessionService.createSession(savedUser.getId(), deviceName, ipAddress);
         return toAuthResponse(savedUser);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(
+            LoginRequest request,
+            String deviceName,
+            String ipAddress
+    ) {
+
         AppUser user = findByIdentifier(request.identifier());
 
         if (isEmail(request.identifier())) {
@@ -86,6 +98,7 @@ public class AuthService {
             throw new RuntimeException("Use OTP login for mobile number");
         }
 
+        userSessionService.createSession(user.getId(), deviceName, ipAddress);
         return toAuthResponse(user);
     }
 
