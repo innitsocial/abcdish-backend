@@ -21,3 +21,4 @@ app:
 
   oauth:
     base-authorization-url: ${OAUTH_BASE_AUTHORIZATION_URL:/oauth2/authorization}
+#Classical@Music@1981

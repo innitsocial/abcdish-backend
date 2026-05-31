@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
+    url: jdbc:postgresql://db.ooqgsiyywjdouupwsmkx.supabase.co:5432/postgres
     username: postgres
-    password: Panda
+    password: Classical@Music@1981
     driver-class-name: org.postgresql.Driver
 
   jpa:
