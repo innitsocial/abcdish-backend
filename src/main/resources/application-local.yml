@@ -1,3 +1,4 @@
+
 spring:
   datasource:
     url: jdbc:postgresql://db.ooqgsiyywjdouupwsmkx.supabase.co:5432/postgres
@@ -36,3 +37,5 @@ management:
   endpoint:
     health:
       show-details: always
+server:
+  forward-headers-strategy: framework
