@@ -1,7 +1,6 @@
 package com.innitsocial.abcdish.auth.controller;
 
 import com.innitsocial.abcdish.auth.dto.*;
-import com.innitsocial.abcdish.users.dto.*;
 import com.innitsocial.abcdish.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -15,24 +14,17 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/register")
-    public AuthResponse register(
-            @Valid @RequestBody RegisterRequest request,
-            HttpServletRequest httpRequest
-    ) {
-        return authService.register(
-                request,
-                getDeviceName(httpRequest),
-                getIpAddress(httpRequest)
-        );
+    @PostMapping("/register/email/request-otp")
+    public void requestRegisterEmailOtp(@Valid @RequestBody RegisterEmailOtpRequest request) {
+        authService.requestRegisterEmailOtp(request);
     }
 
-    @PostMapping("/login")
-    public AuthResponse login(
-            @Valid @RequestBody LoginRequest request,
+    @PostMapping("/register/email/verify-otp")
+    public AuthResponse verifyRegisterEmailOtp(
+            @Valid @RequestBody OtpVerifyRequest request,
             HttpServletRequest httpRequest
     ) {
-        return authService.login(
+        return authService.verifyRegisterEmailOtp(
                 request,
                 getDeviceName(httpRequest),
                 getIpAddress(httpRequest)
@@ -45,28 +37,15 @@ public class AuthController {
     }
 
     @PostMapping("/email/verify-otp")
-    public AuthResponse verifyEmailOtp(@Valid @RequestBody OtpVerifyRequest request) {
-        return authService.verifyEmailOtp(request);
-    }
-
-    @PostMapping("/mobile/request-otp")
-    public void requestMobileOtp(@Valid @RequestBody OtpRequest request) {
-        authService.requestMobileOtp(request);
-    }
-
-    @PostMapping("/mobile/verify-otp")
-    public AuthResponse verifyMobileOtp(@Valid @RequestBody OtpVerifyRequest request) {
-        return authService.verifyMobileOtp(request);
-    }
-
-    @PostMapping("/forgot-password")
-    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        authService.forgotPassword(request);
-    }
-
-    @PostMapping("/reset-password")
-    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request);
+    public AuthResponse verifyEmailOtp(
+            @Valid @RequestBody OtpVerifyRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        return authService.verifyEmailOtp(
+                request,
+                getDeviceName(httpRequest),
+                getIpAddress(httpRequest)
+        );
     }
 
     @PostMapping("/refresh")

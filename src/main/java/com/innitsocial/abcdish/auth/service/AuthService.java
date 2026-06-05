@@ -105,16 +105,87 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
+    public void requestRegisterEmailOtp(RegisterEmailOtpRequest request) {
+        if (request.name() == null || request.name().trim().length() < 2) {
+            throw new RuntimeException("Full name is required");
+        }
+
+        if (!isEmail(request.email())) {
+            throw new RuntimeException("Valid email address is required");
+        }
+
+        String email = request.email().trim();
+        String name = request.name().trim();
+
+        AppUser user = appUserRepository.findByEmail(email).orElse(null);
+
+        if (user != null && user.isEmailVerified()) {
+            throw new RuntimeException("Email already registered. Please login instead.");
+        }
+
+        if (user == null) {
+            user = AppUser.builder()
+                    .name(name)
+                    .email(email)
+                    .emailVerified(false)
+                    .membershipStatus(MembershipStatus.FREE)
+                    .monthlyVideoViews(0)
+                    .role(UserRole.USER)
+                    .build();
+        } else {
+            user.setName(name);
+        }
+
+        appUserRepository.save(user);
+        createOtp(email, OtpType.EMAIL, OtpPurpose.REGISTER_EMAIL);
+    }
+
+    public AuthResponse verifyRegisterEmailOtp(
+            OtpVerifyRequest request,
+            String deviceName,
+            String ipAddress
+    ) {
+        OtpCode otpCode = verifyOtpCode(
+                request.destination(),
+                request.otp(),
+                OtpType.EMAIL,
+                OtpPurpose.REGISTER_EMAIL
+        );
+
+        AppUser user = appUserRepository.findByEmail(request.destination())
+                .orElseThrow(() -> new RuntimeException("No registration request found for this email"));
+
+        user.setEmailVerified(true);
+        otpCode.setUsed(true);
+
+        otpCodeRepository.save(otpCode);
+        AppUser savedUser = appUserRepository.save(user);
+        userSessionService.createSession(savedUser.getId(), deviceName, ipAddress);
+
+        return toAuthResponse(savedUser);
+    }
+
     public void requestEmailOtp(OtpRequest request) {
         if (!isEmail(request.destination())) {
             throw new RuntimeException("Valid email address is required");
+        }
+
+        AppUser user = appUserRepository.findByEmail(request.destination())
+                .orElseThrow(() -> new RuntimeException("No account found. Please create an account."));
+
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Please complete account creation first.");
         }
 
         createOtp(request.destination(), OtpType.EMAIL, OtpPurpose.LOGIN);
 
     }
 
-    public AuthResponse verifyEmailOtp(OtpVerifyRequest request) {
+    public AuthResponse verifyEmailOtp(
+            OtpVerifyRequest request,
+            String deviceName,
+            String ipAddress
+    ) {
         OtpCode otpCode = verifyOtpCode(
                 request.destination(),
                 request.otp(),
@@ -123,20 +194,14 @@ public class AuthService {
         );
 
         AppUser user = appUserRepository.findByEmail(request.destination())
-                .orElseGet(() -> appUserRepository.save(
-                        AppUser.builder()
-                                .email(request.destination())
-                                .emailVerified(true)
-                                .membershipStatus(MembershipStatus.FREE)
-                                .monthlyVideoViews(0)
-                                .build()
-                ));
+                .orElseThrow(() -> new RuntimeException("No account found. Please create an account."));
 
         user.setEmailVerified(true);
         otpCode.setUsed(true);
 
         otpCodeRepository.save(otpCode);
         AppUser savedUser = appUserRepository.save(user);
+        userSessionService.createSession(savedUser.getId(), deviceName, ipAddress);
 
         return toAuthResponse(savedUser);
     }
