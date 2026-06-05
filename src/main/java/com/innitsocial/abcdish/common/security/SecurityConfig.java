@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/social/meals/*/comments").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.PUT, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
@@ -59,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/billing/**").authenticated()
                         .requestMatchers("/api/shopping-list/**").authenticated()
                         .requestMatchers("/api/partners/**").authenticated()
+                        .requestMatchers("/api/social/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
