@@ -1,10 +1,36 @@
 package com.innitsocial.abcdish.media.service;
 
 import com.innitsocial.abcdish.media.dto.MediaUploadResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class MediaService {
+    private static final Set<String> ALLOWED_VIDEO_EXTENSIONS = Set.of("mp4", "mov", "m4v", "webm");
+
+    private final Path storagePath;
+
+    public MediaService(@Value("${app.media.storage-path:uploads/media}") String storagePath) {
+        this.storagePath = Path.of(storagePath).toAbsolutePath().normalize();
+    }
 
     public MediaUploadResponse createUploadPlaceholder(String fileName) {
         return new MediaUploadResponse(
@@ -12,5 +38,78 @@ public class MediaService {
                 "https://cdn.abcdish.com/media/" + fileName,
                 "S3 presigned upload will be connected in the production media phase."
         );
+    }
+
+    public MediaUploadResponse uploadStoryVideo(MultipartFile file, HttpServletRequest request) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Video file is required");
+        }
+
+        String extension = extension(file.getOriginalFilename());
+        if (!ALLOWED_VIDEO_EXTENSIONS.contains(extension)) {
+            throw new RuntimeException("Only mp4, mov, m4v, and webm videos are supported");
+        }
+
+        try {
+            Files.createDirectories(storagePath);
+
+            String fileName = "story-" + UUID.randomUUID() + "." + extension;
+            Path destination = storagePath.resolve(fileName).normalize();
+
+            if (!destination.startsWith(storagePath)) {
+                throw new RuntimeException("Invalid upload path");
+            }
+
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            String publicUrl = ServletUriComponentsBuilder
+                    .fromRequestUri(request)
+                    .replacePath(request.getContextPath() + "/api/media/files/" + fileName)
+                    .replaceQuery(null)
+                    .build()
+                    .toUriString();
+
+            return new MediaUploadResponse("", publicUrl, "Story video uploaded");
+        } catch (IOException error) {
+            throw new RuntimeException("Unable to upload video", error);
+        }
+    }
+
+    public ResponseEntity<Resource> getFile(String fileName) {
+        try {
+            Path file = storagePath.resolve(fileName).normalize();
+            if (!file.startsWith(storagePath) || !Files.exists(file)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Resource resource = new UrlResource(file.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(file);
+            MediaType mediaType = contentType == null
+                    ? MediaType.APPLICATION_OCTET_STREAM
+                    : MediaType.parseMediaType(contentType);
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName() + "\"")
+                    .body(resource);
+        } catch (MalformedURLException error) {
+            return ResponseEntity.notFound().build();
+        } catch (IOException error) {
+            throw new RuntimeException("Unable to read video", error);
+        }
+    }
+
+    private String extension(String fileName) {
+        if (fileName == null || !fileName.contains(".")) {
+            return "mp4";
+        }
+
+        return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
     }
 }
