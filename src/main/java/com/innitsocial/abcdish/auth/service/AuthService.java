@@ -8,13 +8,18 @@ import com.innitsocial.abcdish.notifications.service.NotificationService;
 import com.innitsocial.abcdish.auth.repository.AppUserRepository;
 import com.innitsocial.abcdish.auth.repository.OtpCodeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -422,11 +427,46 @@ public class AuthService {
 
         otpCodeRepository.save(otpCode);
 
-        if (type == OtpType.EMAIL) {
-            notificationService.sendEmailOtp(destination, otp, purpose.name());
-        } else {
-            notificationService.sendSmsOtp(destination, otp, purpose.name());
+        sendOtpAfterCommit(destination, otp, type, purpose);
+    }
+
+    private void sendOtpAfterCommit(
+            String destination,
+            String otp,
+            OtpType type,
+            OtpPurpose purpose
+    ) {
+        Runnable notificationTask = () -> CompletableFuture.runAsync(() -> {
+            try {
+                if (type == OtpType.EMAIL) {
+                    notificationService.sendEmailOtp(destination, otp, purpose.name());
+                } else {
+                    notificationService.sendSmsOtp(destination, otp, purpose.name());
+                }
+            } catch (Exception error) {
+                log.error(
+                        "Failed to send {} OTP for purpose {} to {}",
+                        type,
+                        purpose,
+                        destination,
+                        error
+                );
+            }
+        });
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notificationTask.run();
+            return;
         }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        notificationTask.run();
+                    }
+                }
+        );
     }
 
     private void enforceOtpRateLimit(String destination, OtpType type) {
