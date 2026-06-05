@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/meals/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/social/meals/*/comments").permitAll()
 
@@ -61,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/shopping-list/**").authenticated()
                         .requestMatchers("/api/partners/**").authenticated()
                         .requestMatchers("/api/social/**").authenticated()
+                        .requestMatchers("/api/stories/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
