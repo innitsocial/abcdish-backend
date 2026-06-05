@@ -7,6 +7,8 @@ import com.innitsocial.abcdish.content.repository.MealRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,9 +20,11 @@ public class DataSeeder implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
     private final MealRepository mealRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        repairOtpPurposeConstraint();
 
         if (categoryRepository.count() == 0) {
 
@@ -152,5 +156,28 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         log.info("ABCDish sample data seeded successfully.");
+    }
+
+    private void repairOtpPurposeConstraint() {
+        try {
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.otp_codes
+                    DROP CONSTRAINT IF EXISTS otp_codes_purpose_check
+                    """);
+
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.otp_codes
+                    ADD CONSTRAINT otp_codes_purpose_check
+                    CHECK (purpose IN (
+                        'LOGIN',
+                        'REGISTER_EMAIL',
+                        'VERIFY_EMAIL',
+                        'VERIFY_MOBILE',
+                        'RESET_PASSWORD'
+                    ))
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair otp_codes purpose constraint", error);
+        }
     }
 }
