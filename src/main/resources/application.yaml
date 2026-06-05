@@ -32,6 +32,14 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
   media:
     storage-path: ${MEDIA_STORAGE_PATH:uploads/media}
+    provider: ${APP_MEDIA_PROVIDER:local}
+    public-base-url: ${MEDIA_PUBLIC_BASE_URL:}
+    r2:
+      endpoint: ${R2_ENDPOINT:}
+      bucket: ${R2_BUCKET:}
+      access-key-id: ${R2_ACCESS_KEY_ID:}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+      region: ${R2_REGION:auto}
 
   oauth:
     base-authorization-url: ${OAUTH_BASE_AUTHORIZATION_URL:/oauth2/authorization}
