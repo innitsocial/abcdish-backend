@@ -56,4 +56,7 @@ app:
   notifications:
     email:
       enabled: ${EMAIL_OTP_ENABLED:false}
+      provider: ${EMAIL_PROVIDER:console}
       from: ${OTP_EMAIL_FROM:no-reply@abcdish.com}
+      resend:
+        api-key: ${RESEND_API_KEY:}

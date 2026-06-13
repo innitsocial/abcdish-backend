@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(
         prefix = "app.notifications.email",
-        name = "enabled",
-        havingValue = "false",
+        name = "provider",
+        havingValue = "console",
         matchIfMissing = true
 )
 public class ConsoleNotificationService implements NotificationService {

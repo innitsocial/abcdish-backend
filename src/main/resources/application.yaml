@@ -43,3 +43,9 @@ app:
 
   oauth:
     base-authorization-url: ${OAUTH_BASE_AUTHORIZATION_URL:/oauth2/authorization}
+  notifications:
+    email:
+      provider: ${EMAIL_PROVIDER:console}
+      from: ${OTP_EMAIL_FROM:no-reply@abcdish.com}
+      resend:
+        api-key: ${RESEND_API_KEY:}

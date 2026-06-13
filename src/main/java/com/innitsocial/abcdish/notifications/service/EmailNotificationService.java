@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         prefix = "app.notifications.email",
-        name = "enabled",
-        havingValue = "true"
+        name = "provider",
+        havingValue = "smtp"
 )
 public class EmailNotificationService implements NotificationService {
 
