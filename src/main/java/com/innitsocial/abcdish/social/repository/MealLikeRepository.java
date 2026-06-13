@@ -12,4 +12,6 @@ public interface MealLikeRepository extends JpaRepository<MealLike, Long> {
     boolean existsByMealIdAndUserId(Long mealId, Long userId);
 
     Optional<MealLike> findByMealIdAndUserId(Long mealId, Long userId);
+
+    void deleteByUserId(Long userId);
 }

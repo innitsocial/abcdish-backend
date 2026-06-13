@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ContestEntryRepository extends JpaRepository<ContestEntry, Long> {
     List<ContestEntry> findByContestIdAndApprovedTrue(Long contestId);
+
+    void deleteByUserId(Long userId);
 }

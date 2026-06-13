@@ -8,4 +8,6 @@ import java.util.List;
 public interface ShoppingListItemRepository extends JpaRepository<ShoppingListItem, Long> {
 
     List<ShoppingListItem> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    void deleteByUserId(Long userId);
 }

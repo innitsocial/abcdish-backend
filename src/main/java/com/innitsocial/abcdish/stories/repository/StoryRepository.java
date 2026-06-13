@@ -9,4 +9,6 @@ import java.util.List;
 public interface StoryRepository extends JpaRepository<Story, Long> {
 
     List<Story> findTop30ByExpiresAtAfterOrderByCreatedAtDesc(LocalDateTime now);
+
+    void deleteByUserId(Long userId);
 }

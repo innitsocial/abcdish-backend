@@ -20,6 +20,11 @@ public class ProfileController {
         return authService.getProfile(SecurityUtils.currentUserId());
     }
 
+    @DeleteMapping("/me")
+    public void deleteMyAccount() {
+        authService.deleteAccount(SecurityUtils.currentUserId());
+    }
+
     @PutMapping("/me/communication-preferences")
     public ProfileResponse updateMyCommunicationPreferences(
             @RequestBody CommunicationPreferencesRequest request

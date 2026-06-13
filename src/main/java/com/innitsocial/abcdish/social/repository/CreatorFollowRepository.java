@@ -10,4 +10,6 @@ public interface CreatorFollowRepository extends JpaRepository<CreatorFollow, Lo
     boolean existsByCreatorKeyAndUserId(String creatorKey, Long userId);
 
     Optional<CreatorFollow> findByCreatorKeyAndUserId(String creatorKey, Long userId);
+
+    void deleteByUserId(Long userId);
 }

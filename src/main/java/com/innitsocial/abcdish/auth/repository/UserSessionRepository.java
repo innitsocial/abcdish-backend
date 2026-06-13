@@ -8,4 +8,6 @@ import java.util.List;
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
     List<UserSession> findByUserIdAndActiveTrue(Long userId);
+
+    void deleteByUserId(Long userId);
 }

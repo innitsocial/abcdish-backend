@@ -7,6 +7,16 @@ import com.innitsocial.abcdish.membership.entity.MembershipStatus;
 import com.innitsocial.abcdish.notifications.service.NotificationService;
 import com.innitsocial.abcdish.auth.repository.AppUserRepository;
 import com.innitsocial.abcdish.auth.repository.OtpCodeRepository;
+import com.innitsocial.abcdish.auth.repository.RefreshTokenRepository;
+import com.innitsocial.abcdish.auth.repository.UserSessionRepository;
+import com.innitsocial.abcdish.contest.repository.ContestEntryRepository;
+import com.innitsocial.abcdish.membership.repository.VideoViewRepository;
+import com.innitsocial.abcdish.shopping.repository.ShoppingListItemRepository;
+import com.innitsocial.abcdish.social.repository.CreatorFollowRepository;
+import com.innitsocial.abcdish.social.repository.MealCommentRepository;
+import com.innitsocial.abcdish.social.repository.MealLikeRepository;
+import com.innitsocial.abcdish.social.repository.MealShareRepository;
+import com.innitsocial.abcdish.stories.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +42,16 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final UserSessionService userSessionService;
     private final NotificationService notificationService;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserSessionRepository userSessionRepository;
+    private final StoryRepository storyRepository;
+    private final ShoppingListItemRepository shoppingListItemRepository;
+    private final CreatorFollowRepository creatorFollowRepository;
+    private final MealCommentRepository mealCommentRepository;
+    private final MealLikeRepository mealLikeRepository;
+    private final MealShareRepository mealShareRepository;
+    private final VideoViewRepository videoViewRepository;
+    private final ContestEntryRepository contestEntryRepository;
 
 
     public AuthResponse register(
@@ -299,6 +319,35 @@ public class AuthService {
         AppUser savedUser = appUserRepository.save(user);
 
         return toProfileResponse(savedUser);
+    }
+
+    public void deleteAccount(Long userId) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String email = user.getEmail();
+        String mobileNumber = user.getMobileNumber();
+
+        refreshTokenRepository.deleteByUserId(userId);
+        userSessionRepository.deleteByUserId(userId);
+        storyRepository.deleteByUserId(userId);
+        shoppingListItemRepository.deleteByUserId(userId);
+        creatorFollowRepository.deleteByUserId(userId);
+        mealCommentRepository.deleteByUserId(userId);
+        mealLikeRepository.deleteByUserId(userId);
+        mealShareRepository.deleteByUserId(userId);
+        videoViewRepository.deleteByUserId(userId);
+        contestEntryRepository.deleteByUserId(userId);
+
+        if (email != null && !email.isBlank()) {
+            otpCodeRepository.deleteByDestination(email);
+        }
+
+        if (mobileNumber != null && !mobileNumber.isBlank()) {
+            otpCodeRepository.deleteByDestination(mobileNumber);
+        }
+
+        appUserRepository.delete(user);
     }
 
     public ProfileResponse getMembershipStatus(Long userId) {

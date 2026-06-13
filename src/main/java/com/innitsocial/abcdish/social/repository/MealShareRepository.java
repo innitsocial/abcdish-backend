@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MealShareRepository extends JpaRepository<MealShare, Long> {
 
     long countByMealId(Long mealId);
+
+    void deleteByUserId(Long userId);
 }

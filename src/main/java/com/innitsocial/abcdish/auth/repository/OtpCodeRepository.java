@@ -22,4 +22,6 @@ public interface OtpCodeRepository extends JpaRepository<OtpCode, Long> {
             OtpType type,
             LocalDateTime createdAt
     );
+
+    void deleteByDestination(String destination);
 }

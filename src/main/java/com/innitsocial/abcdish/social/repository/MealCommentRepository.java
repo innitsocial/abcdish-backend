@@ -10,4 +10,6 @@ public interface MealCommentRepository extends JpaRepository<MealComment, Long> 
     long countByMealId(Long mealId);
 
     List<MealComment> findTop20ByMealIdOrderByCreatedAtDesc(Long mealId);
+
+    void deleteByUserId(Long userId);
 }

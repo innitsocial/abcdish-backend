@@ -15,4 +15,6 @@ public interface VideoViewRepository extends JpaRepository<VideoView, Long> {
             Long mealId,
             LocalDate viewMonth
     );
+
+    void deleteByUserId(Long userId);
 }
