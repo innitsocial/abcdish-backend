@@ -1,7 +1,5 @@
 package com.innitsocial.abcdish.notifications.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatusCode;
@@ -13,11 +11,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @ConditionalOnProperty(
         prefix = "app.notifications.email",
         name = "provider",
@@ -26,8 +21,6 @@ import java.util.Map;
 public class ResendEmailNotificationService implements NotificationService {
 
     private static final URI RESEND_EMAILS_URI = URI.create("https://api.resend.com/emails");
-
-    private final ObjectMapper objectMapper;
 
     @Value("${app.notifications.email.resend.api-key:}")
     private String apiKey;
@@ -42,16 +35,20 @@ public class ResendEmailNotificationService implements NotificationService {
         }
 
         try {
-            String body = objectMapper.writeValueAsString(Map.of(
-                    "from", fromAddress,
-                    "to", List.of(email),
-                    "subject", "Your ABCDish verification code",
-                    "text", "Your ABCDish code is %s.\n\nThis code expires in 10 minutes.".formatted(otp),
-                    "html", """
-                            <p>Your ABCDish code is <strong>%s</strong>.</p>
-                            <p>This code expires in 10 minutes.</p>
-                            """.formatted(otp)
-            ));
+            String body = """
+                    {
+                      "from": "%s",
+                      "to": ["%s"],
+                      "subject": "Your ABCDish verification code",
+                      "text": "Your ABCDish code is %s.\\n\\nThis code expires in 10 minutes.",
+                      "html": "<p>Your ABCDish code is <strong>%s</strong>.</p><p>This code expires in 10 minutes.</p>"
+                    }
+                    """.formatted(
+                    jsonEscape(fromAddress),
+                    jsonEscape(email),
+                    jsonEscape(otp),
+                    jsonEscape(otp)
+            );
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(RESEND_EMAILS_URI)
@@ -79,5 +76,18 @@ public class ResendEmailNotificationService implements NotificationService {
     @Override
     public void sendSmsOtp(String mobileNumber, String otp, String purpose) {
         throw new RuntimeException("SMS OTP is not enabled");
+    }
+
+    private String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
