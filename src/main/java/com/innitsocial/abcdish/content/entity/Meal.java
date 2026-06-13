@@ -33,6 +33,9 @@ public class Meal {
     @Column(name = "video_url", length = 1000)
     private String videoUrl;
 
+    @Column(name = "trailer_url", length = 1000)
+    private String trailerUrl;
+
     private Integer duration;
 
     private String complexity;

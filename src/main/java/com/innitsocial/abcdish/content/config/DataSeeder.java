@@ -76,6 +76,7 @@ public class DataSeeder implements CommandLineRunner {
                             .description("Classic creamy Indian butter chicken recipe.")
                             .imageUrl("https://images.unsplash.com/photo-1603894584373-5ac82b2ae398")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .duration(35)
                             .complexity("medium")
                             .affordability("affordable")
@@ -107,6 +108,7 @@ public class DataSeeder implements CommandLineRunner {
                             .description("Quick healthy breakfast with avocado.")
                             .imageUrl("https://images.unsplash.com/photo-1541519227354-08fa5d50c44d")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .duration(10)
                             .complexity("simple")
                             .affordability("affordable")
@@ -137,6 +139,7 @@ public class DataSeeder implements CommandLineRunner {
                             .description("Simple Italian pasta recipe.")
                             .imageUrl("https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .duration(20)
                             .complexity("simple")
                             .affordability("affordable")
@@ -196,6 +199,10 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.meals
                     ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'APPROVED'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS trailer_url VARCHAR(1000)
                     """);
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.meals

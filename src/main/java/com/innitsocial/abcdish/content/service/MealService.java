@@ -43,6 +43,7 @@ public class MealService {
                 .description(request.description())
                 .imageUrl(request.imageUrl())
                 .videoUrl(request.videoUrl())
+                .trailerUrl(request.trailerUrl())
                 .duration(request.duration())
                 .complexity(request.complexity())
                 .affordability(request.affordability())
@@ -67,6 +68,7 @@ public class MealService {
         meal.setDescription(request.description());
         meal.setImageUrl(request.imageUrl());
         meal.setVideoUrl(request.videoUrl());
+        meal.setTrailerUrl(request.trailerUrl());
         meal.setDuration(request.duration());
         meal.setComplexity(request.complexity());
         meal.setAffordability(request.affordability());

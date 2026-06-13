@@ -72,6 +72,20 @@ public class MediaService {
     }
 
     public MediaUploadResponse uploadStoryVideo(MultipartFile file, HttpServletRequest request) {
+        return uploadVideo(file, request, "story", "stories", "Story video uploaded");
+    }
+
+    public MediaUploadResponse uploadRecipeTrailer(MultipartFile file, HttpServletRequest request) {
+        return uploadVideo(file, request, "recipe-trailer", "recipe-trailers", "Recipe trailer uploaded");
+    }
+
+    private MediaUploadResponse uploadVideo(
+            MultipartFile file,
+            HttpServletRequest request,
+            String filePrefix,
+            String objectFolder,
+            String successMessage
+    ) {
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Video file is required");
         }
@@ -81,13 +95,13 @@ public class MediaService {
             throw new RuntimeException("Only mp4, mov, m4v, and webm videos are supported");
         }
 
-        String fileName = "story-" + UUID.randomUUID() + "." + extension;
+        String fileName = filePrefix + "-" + UUID.randomUUID() + "." + extension;
 
         if ("r2".equals(provider) || "s3".equals(provider)) {
-            return uploadToR2(file, "stories/" + fileName);
+            return uploadToR2(file, objectFolder + "/" + fileName, successMessage + " to R2");
         }
 
-        return uploadToLocal(file, fileName, request);
+        return uploadToLocal(file, fileName, request, successMessage + " locally");
     }
 
     public ResponseEntity<Resource> getFile(String fileName) {
@@ -126,7 +140,12 @@ public class MediaService {
         return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
     }
 
-    private MediaUploadResponse uploadToLocal(MultipartFile file, String fileName, HttpServletRequest request) {
+    private MediaUploadResponse uploadToLocal(
+            MultipartFile file,
+            String fileName,
+            HttpServletRequest request,
+            String message
+    ) {
         try {
             Files.createDirectories(storagePath);
 
@@ -147,13 +166,13 @@ public class MediaService {
                     .build()
                     .toUriString();
 
-            return new MediaUploadResponse("", publicUrl, "Story video uploaded locally");
+            return new MediaUploadResponse("", publicUrl, message);
         } catch (IOException error) {
             throw new RuntimeException("Unable to upload video", error);
         }
     }
 
-    private MediaUploadResponse uploadToR2(MultipartFile file, String objectKey) {
+    private MediaUploadResponse uploadToR2(MultipartFile file, String objectKey, String message) {
         validateR2Config();
 
         try (InputStream inputStream = file.getInputStream();
@@ -176,7 +195,7 @@ public class MediaService {
 
             s3Client.putObject(request, RequestBody.fromInputStream(inputStream, file.getSize()));
 
-            return new MediaUploadResponse("", publicBaseUrl + "/" + objectKey, "Story video uploaded to R2");
+            return new MediaUploadResponse("", publicBaseUrl + "/" + objectKey, message);
         } catch (IOException error) {
             throw new RuntimeException("Unable to upload video", error);
         }

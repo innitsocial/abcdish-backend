@@ -11,6 +11,7 @@ public record MealRequestDto(
         String description,
         String imageUrl,
         String videoUrl,
+        String trailerUrl,
         @NotNull Integer duration,
         String complexity,
         String affordability,
