@@ -4,6 +4,7 @@ import com.innitsocial.abcdish.content.entity.Category;
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.repository.CategoryRepository;
 import com.innitsocial.abcdish.content.repository.MealRepository;
+import com.innitsocial.abcdish.moderation.ModerationStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,6 +28,7 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         repairOtpPurposeConstraint();
+        repairModerationColumns();
 
         if (categoryRepository.count() == 0) {
 
@@ -96,6 +98,8 @@ public class DataSeeder implements CommandLineRunner {
                             .lactoseFree(false)
                             .vegetarian(false)
                             .vegan(false)
+                            .moderationStatus(ModerationStatus.APPROVED)
+                            .moderationReason("Seeded recipe")
                             .build(),
 
                     Meal.builder()
@@ -124,6 +128,8 @@ public class DataSeeder implements CommandLineRunner {
                             .lactoseFree(true)
                             .vegetarian(true)
                             .vegan(true)
+                            .moderationStatus(ModerationStatus.APPROVED)
+                            .moderationReason("Seeded recipe")
                             .build(),
 
                     Meal.builder()
@@ -151,6 +157,8 @@ public class DataSeeder implements CommandLineRunner {
                             .lactoseFree(true)
                             .vegetarian(true)
                             .vegan(true)
+                            .moderationStatus(ModerationStatus.APPROVED)
+                            .moderationReason("Seeded recipe")
                             .build()
             );
 
@@ -180,6 +188,54 @@ public class DataSeeder implements CommandLineRunner {
                     """);
         } catch (DataAccessException error) {
             log.warn("Could not repair otp_codes purpose constraint", error);
+        }
+    }
+
+    private void repairModerationColumns() {
+        try {
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'APPROVED'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS moderation_reason VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    UPDATE abcdish.meals
+                    SET moderation_status = 'APPROVED'
+                    WHERE moderation_status IS NULL
+                    """);
+
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.stories
+                    ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'PENDING_REVIEW'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.stories
+                    ADD COLUMN IF NOT EXISTS moderation_reason VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    UPDATE abcdish.stories
+                    SET moderation_status = 'APPROVED'
+                    WHERE moderation_status IS NULL
+                    """);
+
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'PENDING_REVIEW'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS moderation_reason VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    UPDATE abcdish.contest_entries
+                    SET moderation_status = CASE WHEN approved = true THEN 'APPROVED' ELSE 'PENDING_REVIEW' END
+                    WHERE moderation_status IS NULL
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair moderation columns", error);
         }
     }
 }

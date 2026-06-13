@@ -1,5 +1,6 @@
 package com.innitsocial.abcdish.contest.entity;
 
+import com.innitsocial.abcdish.moderation.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,13 @@ public class ContestEntry {
     private long votes;
 
     private boolean approved;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ModerationStatus moderationStatus = ModerationStatus.PENDING_REVIEW;
+
+    @Column(length = 1000)
+    private String moderationReason;
 
     private LocalDateTime createdAt;
 

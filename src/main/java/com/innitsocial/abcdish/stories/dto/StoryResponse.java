@@ -14,7 +14,9 @@ public record StoryResponse(
         String imageUrl,
         String videoUrl,
         LocalDateTime createdAt,
-        LocalDateTime expiresAt
+        LocalDateTime expiresAt,
+        String moderationStatus,
+        String moderationReason
 ) {
     public static StoryResponse fromEntity(Story story, AppUser user) {
         String creatorName = user.getName() == null || user.getName().isBlank()
@@ -30,7 +32,9 @@ public record StoryResponse(
                 story.getImageUrl(),
                 story.getVideoUrl(),
                 story.getCreatedAt(),
-                story.getExpiresAt()
+                story.getExpiresAt(),
+                story.getModerationStatus() == null ? "PENDING_REVIEW" : story.getModerationStatus().name(),
+                story.getModerationReason()
         );
     }
 }

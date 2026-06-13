@@ -1,5 +1,6 @@
 package com.innitsocial.abcdish.content.entity;
 
+import com.innitsocial.abcdish.moderation.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,4 +70,11 @@ public class Meal {
     private boolean vegan;
 
     private boolean vegetarian;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ModerationStatus moderationStatus = ModerationStatus.APPROVED;
+
+    @Column(length = 1000)
+    private String moderationReason;
 }

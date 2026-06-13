@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/actuator/info"
                         ).permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/meals/manage").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.GET, "/api/meals/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
@@ -47,7 +48,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.PUT, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/meals/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.POST, "/api/contests/*/entries").authenticated()
 
                         .requestMatchers("/api/profile/**").authenticated()

@@ -23,6 +23,14 @@ public class MealController {
 
     @GetMapping
     public List<MealResponseDto> getAllMeals() {
+        return mealService.findApproved()
+                .stream()
+                .map(MealResponseDto::fromEntity)
+                .toList();
+    }
+
+    @GetMapping("/manage")
+    public List<MealResponseDto> getManageMeals() {
         return mealService.findAll()
                 .stream()
                 .map(MealResponseDto::fromEntity)

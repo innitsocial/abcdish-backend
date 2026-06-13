@@ -1,5 +1,6 @@
 package com.innitsocial.abcdish.stories.entity;
 
+import com.innitsocial.abcdish.moderation.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,6 +37,13 @@ public class Story {
     private LocalDateTime expiresAt;
 
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ModerationStatus moderationStatus = ModerationStatus.PENDING_REVIEW;
+
+    @Column(length = 1000)
+    private String moderationReason;
 
     @PrePersist
     void onCreate() {

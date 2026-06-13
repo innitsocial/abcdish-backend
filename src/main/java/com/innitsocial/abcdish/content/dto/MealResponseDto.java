@@ -19,7 +19,9 @@ public record MealResponseDto(
         boolean glutenFree,
         boolean lactoseFree,
         boolean vegan,
-        boolean vegetarian
+        boolean vegetarian,
+        String moderationStatus,
+        String moderationReason
 ) {
     public static MealResponseDto fromEntity(Meal meal) {
         return new MealResponseDto(
@@ -37,7 +39,9 @@ public record MealResponseDto(
                 meal.isGlutenFree(),
                 meal.isLactoseFree(),
                 meal.isVegan(),
-                meal.isVegetarian()
+                meal.isVegetarian(),
+                meal.getModerationStatus() == null ? "APPROVED" : meal.getModerationStatus().name(),
+                meal.getModerationReason()
         );
     }
 }

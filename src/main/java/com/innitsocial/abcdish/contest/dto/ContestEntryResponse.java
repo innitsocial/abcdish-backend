@@ -11,7 +11,9 @@ public record ContestEntryResponse(
         String videoUrl,
         String thumbnailUrl,
         long votes,
-        boolean approved
+        boolean approved,
+        String moderationStatus,
+        String moderationReason
 ) {
     public static ContestEntryResponse fromEntity(ContestEntry entry) {
         return new ContestEntryResponse(
@@ -23,7 +25,9 @@ public record ContestEntryResponse(
                 entry.getVideoUrl(),
                 entry.getThumbnailUrl(),
                 entry.getVotes(),
-                entry.isApproved()
+                entry.isApproved(),
+                entry.getModerationStatus() == null ? "PENDING_REVIEW" : entry.getModerationStatus().name(),
+                entry.getModerationReason()
         );
     }
 }
