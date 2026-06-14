@@ -41,6 +41,15 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.seed.recipe-ideas.reset:false}")
     private boolean resetRecipeIdeas;
 
+    @Value("${app.seed.recipe-ideas.publish-ready-to-feed:true}")
+    private boolean publishReadyRecipeIdeasToFeed;
+
+    @Value("${app.seed.sample-feed.enabled:false}")
+    private boolean sampleFeedEnabled;
+
+    @Value("${app.seed.sample-feed.reset:false}")
+    private boolean resetSampleFeed;
+
     @Override
     public void run(String... args) {
         repairOtpPurposeConstraint();
@@ -50,6 +59,12 @@ public class DataSeeder implements CommandLineRunner {
         repairMealTranslationTables();
         repairRecipeIdeaTables();
         importRecipeIdeas();
+        if (resetSampleFeed) {
+            deleteSampleFeedMeals();
+        }
+        if (publishReadyRecipeIdeasToFeed) {
+            publishReadyRecipeIdeasToFeed();
+        }
 
         if (categoryRepository.count() == 0) {
 
@@ -88,7 +103,7 @@ public class DataSeeder implements CommandLineRunner {
             categoryRepository.saveAll(categories);
         }
 
-        if (mealRepository.count() == 0) {
+        if (sampleFeedEnabled && mealRepository.count() == 0) {
 
             List<Meal> meals = List.of(
 
@@ -205,6 +220,125 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         log.info("ABCDish sample data seeded successfully.");
+    }
+
+    private void deleteSampleFeedMeals() {
+        try {
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meals
+                    WHERE title IN (
+                        'Butter Chicken',
+                        'Healthy Avocado Toast',
+                        'Quick Pasta'
+                    )
+                    """);
+            log.info("Removed old ABCDish sample feed meals");
+        } catch (DataAccessException error) {
+            log.warn("Could not remove old ABCDish sample feed meals", error);
+        }
+    }
+
+    public void publishReadyRecipeIdeasToFeed() {
+        try {
+            int inserted = jdbcTemplate.update("""
+                    INSERT INTO abcdish.meals (
+                        recipe_code,
+                        title,
+                        description,
+                        image_url,
+                        video_url,
+                        trailer_url,
+                        trailer_type,
+                        promo_trailer_title,
+                        promo_trailer_subtitle,
+                        duration,
+                        complexity,
+                        affordability,
+                        gluten_free,
+                        lactose_free,
+                        vegan,
+                        vegetarian,
+                        moderation_status,
+                        moderation_reason
+                    )
+                    SELECT
+                        'RI' || id,
+                        recipe_name,
+                        COALESCE(NULLIF(caption_text, ''), launch_notes, 'ABCDish AI-ready recipe.'),
+                        thumbnail_url,
+                        dummy_video_url,
+                        dummy_trailer_url,
+                        'VIDEO',
+                        recipe_name,
+                        COALESCE(NULLIF(caption_text, ''), 'Any Buddy Can Dish'),
+                        30,
+                        CASE
+                            WHEN LOWER(filter_category) LIKE '%hard%' OR LOWER(filter_category) LIKE '%difficult%' THEN 'hard'
+                            WHEN LOWER(filter_category) LIKE '%challenging%' THEN 'challenging'
+                            ELSE 'simple'
+                        END,
+                        'affordable',
+                        LOWER(filter_category) LIKE '%gluten%',
+                        LOWER(filter_category) LIKE '%lactose%',
+                        LOWER(filter_category) LIKE '%vegan%',
+                        LOWER(filter_category) LIKE '%vegetarian%' OR LOWER(filter_category) LIKE '%vegan%',
+                        'APPROVED',
+                        'Generated from ABCDish recipe idea backlog'
+                    FROM abcdish.recipe_ideas
+                    WHERE video_status IN ('DUMMY_VIDEO_READY', 'VIDEO_GENERATION_PENDING', 'GENERATED', 'APPROVED_FOR_FEED')
+                      AND COALESCE(NULLIF(thumbnail_url, ''), '') <> ''
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM abcdish.meals meal
+                          WHERE meal.recipe_code = 'RI' || abcdish.recipe_ideas.id
+                      )
+                    """);
+            if (inserted > 0) {
+                log.info("Published ABCDish recipe ideas to feed meals count={}", inserted);
+                backfillMealDetailsForRecipeIdeas();
+                backfillRecipeCodes();
+            }
+        } catch (DataAccessException error) {
+            log.warn("Could not publish ready ABCDish recipe ideas to feed", error);
+        }
+    }
+
+    private void backfillMealDetailsForRecipeIdeas() {
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_categories (meal_id, category_id)
+                SELECT meal.id, 'cooking'
+                FROM abcdish.meals meal
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM abcdish.meal_categories category
+                      WHERE category.meal_id = meal.id
+                  )
+                """);
+
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_ingredients (meal_id, ingredient)
+                SELECT meal.id, 'Verify generated recipe ingredients'
+                FROM abcdish.meals meal
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM abcdish.meal_ingredients ingredient
+                      WHERE ingredient.meal_id = meal.id
+                  )
+                """);
+
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_steps (meal_id, step)
+                SELECT meal.id, 'Review AI-generated recipe video and captions'
+                FROM abcdish.meals meal
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM abcdish.meal_steps step
+                      WHERE step.meal_id = meal.id
+                  )
+                """);
     }
 
     private void repairOtpPurposeConstraint() {

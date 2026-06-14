@@ -2,6 +2,7 @@ package com.innitsocial.abcdish.content.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innitsocial.abcdish.content.config.DataSeeder;
 import com.innitsocial.abcdish.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final MediaService mediaService;
+    private final DataSeeder dataSeeder;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -103,6 +105,8 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
                 return;
             }
         }
+
+        dataSeeder.publishReadyRecipeIdeasToFeed();
     }
 
     private boolean generateRecipeIdea(RecipeIdeaRow row) {
