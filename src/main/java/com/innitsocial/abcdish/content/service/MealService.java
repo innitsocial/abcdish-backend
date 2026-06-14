@@ -23,17 +23,24 @@ public class MealService {
 
     @Transactional(readOnly = true)
     public List<Meal> findAll() {
-        return mealRepository.findAll();
+        return mealRepository.findAll()
+                .stream()
+                .map(this::initializeDetails)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<Meal> findApproved() {
-        return mealRepository.findWithDetailsByModerationStatus(ModerationStatus.APPROVED);
+        return mealRepository.findByModerationStatus(ModerationStatus.APPROVED)
+                .stream()
+                .map(this::initializeDetails)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public Meal findById(Long id) {
-        return mealRepository.findWithDetailsById(id)
+        return mealRepository.findById(id)
+                .map(this::initializeDetails)
                 .orElseThrow(() -> new RuntimeException("Meal not found: " + id));
     }
 
@@ -118,6 +125,13 @@ public class MealService {
 
     private String clean(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private Meal initializeDetails(Meal meal) {
+        meal.getCategories().size();
+        meal.getIngredients().size();
+        meal.getSteps().size();
+        return meal;
     }
 
     private void ensureRecipeCode(Meal meal) {

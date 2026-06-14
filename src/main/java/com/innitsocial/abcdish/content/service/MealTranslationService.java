@@ -87,7 +87,8 @@ public class MealTranslationService {
             return;
         }
 
-        Meal meal = mealRepository.findWithDetailsById(mealId)
+        Meal meal = mealRepository.findById(mealId)
+                .map(this::initializeDetails)
                 .orElseThrow(() -> new RuntimeException("Meal not found: " + mealId));
         createTranslation(meal, languageCode);
     }
@@ -112,6 +113,13 @@ public class MealTranslationService {
                     meal.getId(), languageCode, error.getMessage());
             return fromMeal(meal, languageCode);
         }
+    }
+
+    private Meal initializeDetails(Meal meal) {
+        meal.getCategories().size();
+        meal.getIngredients().size();
+        meal.getSteps().size();
+        return meal;
     }
 
     private AiMealTranslation translateWithOpenAi(Meal meal, String languageCode)

@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.List;
 
@@ -55,6 +56,7 @@ public class Meal {
     private String affordability;
 
     @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     @CollectionTable(
             name = "meal_categories",
             joinColumns = @JoinColumn(name = "meal_id")
@@ -63,6 +65,7 @@ public class Meal {
     private List<String> categories;
 
     @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     @CollectionTable(
             name = "meal_ingredients",
             joinColumns = @JoinColumn(name = "meal_id")
@@ -70,7 +73,8 @@ public class Meal {
     @Column(name = "ingredient")
     private List<String> ingredients;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     @CollectionTable(
             name = "meal_steps",
             joinColumns = @JoinColumn(name = "meal_id")
