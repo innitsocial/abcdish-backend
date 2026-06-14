@@ -14,11 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,8 +48,11 @@ public class RecipeDraftService {
     public RecipeDraftResponse createDraft(RecipeDraftRequest request) {
         String sourceUrl = clean(request.sourceUrl());
         String sourceType = clean(request.sourceType()).isBlank()
-                ? "YOUTUBE"
+                ? "OWN_VIDEO"
                 : clean(request.sourceType()).toUpperCase();
+        if (!"OWN_VIDEO".equals(sourceType)) {
+            throw new IllegalArgumentException("ABCDish only supports managed uploaded recipe videos.");
+        }
         String title = titleFrom(request.titleHint(), sourceUrl, sourceType);
         String creatorName = creatorNameFrom(request);
         VideoMetadata metadata = metadataFor(sourceType, sourceUrl);
@@ -89,7 +90,7 @@ public class RecipeDraftService {
                                 Return only food-related recipe details. If source evidence is thin,
                                 produce a conservative draft and make the user verify it.
                                 Do not invent health claims. Keep ingredients and steps practical.
-                                For YouTube sources, create a text promo trailer instead of a video trailer.
+                                ABCDish uses managed, uploaded videos only. Do not rely on external video platforms.
                                 """
                 ),
                 Map.of(
@@ -114,7 +115,7 @@ public class RecipeDraftService {
 
         String outputJson = extractOutputText(response.body());
         AiRecipeDraft draft = objectMapper.readValue(outputJson, AiRecipeDraft.class);
-        String trailerType = "YOUTUBE".equals(sourceType) ? "PROMO_TEXT" : cleanOrDefault(draft.trailerType(), "VIDEO");
+        String trailerType = cleanOrDefault(draft.trailerType(), "VIDEO");
         String imageUrl = clean(draft.imageUrl()).isBlank() ? metadata.thumbnailUrl() : clean(draft.imageUrl());
 
         return new RecipeDraftResponse(
@@ -161,10 +162,6 @@ public class RecipeDraftService {
                 %s
 
                 Create a recipe draft for the upload form.
-                If source type is YOUTUBE, set trailerType to PROMO_TEXT, trailerUrl to empty string,
-                and create an attractive promoTrailerTitle and promoTrailerSubtitle for a short
-                text-based feed trailer. Mention the creator/user naturally when useful.
-
                 If source type is OWN_VIDEO, set trailerType to VIDEO when a real trailer clip still
                 needs to be uploaded or generated. Do not claim a trailer has been generated unless
                 trailerUrl is present in the source notes.
@@ -242,31 +239,7 @@ public class RecipeDraftService {
     }
 
     private VideoMetadata metadataFor(String sourceType, String sourceUrl) {
-        if (!"YOUTUBE".equals(sourceType) || clean(sourceUrl).isBlank()) {
-            return new VideoMetadata("", "", "");
-        }
-
-        try {
-            String encodedUrl = URLEncoder.encode(sourceUrl, StandardCharsets.UTF_8);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://www.youtube.com/oembed?format=json&url=" + encodedUrl))
-                    .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return new VideoMetadata("", "", "");
-            }
-            JsonNode json = objectMapper.readTree(response.body());
-            return new VideoMetadata(
-                    clean(json.path("title").asText()),
-                    clean(json.path("author_name").asText()),
-                    clean(json.path("thumbnail_url").asText())
-            );
-        } catch (Exception error) {
-            log.debug("Unable to read YouTube metadata for {}: {}", sourceUrl, error.getMessage());
-            return new VideoMetadata("", "", "");
-        }
+        return new VideoMetadata("", "", "");
     }
 
     private RecipeDraftResponse fallbackDraft(
@@ -287,7 +260,7 @@ public class RecipeDraftService {
                 clean(metadata.thumbnailUrl()),
                 sourceUrl,
                 "",
-                "YOUTUBE".equals(sourceType) ? "PROMO_TEXT" : "VIDEO",
+                "VIDEO",
                 finalTitle,
                 promoSubtitle,
                 30,
@@ -324,10 +297,6 @@ public class RecipeDraftService {
             return cleanedHint;
         }
 
-        if ("YOUTUBE".equals(sourceType)) {
-            return "YouTube Cooking Recipe";
-        }
-
         try {
             String path = URI.create(sourceUrl).getPath();
             if (path != null && !path.isBlank()) {
@@ -345,7 +314,7 @@ public class RecipeDraftService {
     }
 
     private String sourceLabel(String sourceType) {
-        return "YOUTUBE".equals(sourceType) ? "the YouTube link" : "the uploaded video";
+        return "the uploaded video";
     }
 
     private String cleanOrDefault(String value, String fallback) {

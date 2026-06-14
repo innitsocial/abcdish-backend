@@ -29,6 +29,7 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         repairOtpPurposeConstraint();
         repairModerationColumns();
+        repairStoryEngagementTables();
 
         if (categoryRepository.count() == 0) {
 
@@ -285,6 +286,39 @@ public class DataSeeder implements CommandLineRunner {
                     """);
         } catch (DataAccessException error) {
             log.warn("Could not backfill recipe codes", error);
+        }
+    }
+
+    private void repairStoryEngagementTables() {
+        try {
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.story_views (
+                        id BIGSERIAL PRIMARY KEY,
+                        story_id BIGINT NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uk_story_views_story_user UNIQUE (story_id, user_id)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_story_views_story_id
+                    ON abcdish.story_views(story_id)
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.story_likes (
+                        id BIGSERIAL PRIMARY KEY,
+                        story_id BIGINT NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uk_story_likes_story_user UNIQUE (story_id, user_id)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_story_likes_story_id
+                    ON abcdish.story_likes(story_id)
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair story engagement tables", error);
         }
     }
 }

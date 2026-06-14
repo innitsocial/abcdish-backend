@@ -16,9 +16,22 @@ public record StoryResponse(
         LocalDateTime createdAt,
         LocalDateTime expiresAt,
         String moderationStatus,
-        String moderationReason
+        String moderationReason,
+        long viewCount,
+        long likeCount,
+        boolean likedByCurrentUser
 ) {
     public static StoryResponse fromEntity(Story story, AppUser user) {
+        return fromEntity(story, user, 0, 0, false);
+    }
+
+    public static StoryResponse fromEntity(
+            Story story,
+            AppUser user,
+            long viewCount,
+            long likeCount,
+            boolean likedByCurrentUser
+    ) {
         String creatorName = user.getName() == null || user.getName().isBlank()
                 ? "ABCDish Creator"
                 : user.getName();
@@ -34,7 +47,10 @@ public record StoryResponse(
                 story.getCreatedAt(),
                 story.getExpiresAt(),
                 story.getModerationStatus() == null ? "PENDING_REVIEW" : story.getModerationStatus().name(),
-                story.getModerationReason()
+                story.getModerationReason(),
+                viewCount,
+                likeCount,
+                likedByCurrentUser
         );
     }
 }
