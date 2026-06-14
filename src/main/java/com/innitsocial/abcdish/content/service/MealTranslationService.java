@@ -3,13 +3,16 @@ package com.innitsocial.abcdish.content.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innitsocial.abcdish.common.jobs.BackgroundJobService;
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.entity.MealTranslation;
+import com.innitsocial.abcdish.content.repository.MealRepository;
 import com.innitsocial.abcdish.content.repository.MealTranslationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -28,6 +31,8 @@ import java.util.Map;
 public class MealTranslationService {
 
     private final MealTranslationRepository mealTranslationRepository;
+    private final MealRepository mealRepository;
+    private final BackgroundJobService backgroundJobService;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -54,6 +59,37 @@ public class MealTranslationService {
 
         return mealTranslationRepository.findByMealIdAndLanguageCode(meal.getId(), languageCode)
                 .orElseGet(() -> createTranslation(meal, languageCode));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public MealTranslation cachedTranslationFor(Meal meal, String requestedLanguage) {
+        String languageCode = cleanLanguage(requestedLanguage);
+        if ("en".equals(languageCode) || meal.getId() == null) {
+            return null;
+        }
+
+        MealTranslation translation = mealTranslationRepository.findByMealIdAndLanguageCode(meal.getId(), languageCode)
+                .orElse(null);
+        if (translation == null) {
+            queueTranslation(meal.getId(), languageCode);
+        }
+        return translation;
+    }
+
+    @Transactional
+    public void generateQueuedTranslation(Long mealId, String requestedLanguage) {
+        String languageCode = cleanLanguage(requestedLanguage);
+        if ("en".equals(languageCode) || mealId == null) {
+            return;
+        }
+
+        if (mealTranslationRepository.findByMealIdAndLanguageCode(mealId, languageCode).isPresent()) {
+            return;
+        }
+
+        Meal meal = mealRepository.findWithDetailsById(mealId)
+                .orElseThrow(() -> new RuntimeException("Meal not found: " + mealId));
+        createTranslation(meal, languageCode);
     }
 
     private MealTranslation createTranslation(Meal meal, String languageCode) {
@@ -191,6 +227,17 @@ public class MealTranslationService {
 
     private String clean(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void queueTranslation(Long mealId, String languageCode) {
+        backgroundJobService.enqueue(
+                "TRANSLATE_MEAL",
+                "translate-meal:%d:%s".formatted(mealId, languageCode),
+                Map.of(
+                        "mealId", mealId,
+                        "languageCode", languageCode
+                )
+        );
     }
 
     private List<String> nonEmpty(List<String> value, List<String> fallback) {

@@ -2,6 +2,7 @@ package com.innitsocial.abcdish.contest.repository;
 
 import com.innitsocial.abcdish.contest.entity.ContestEntry;
 import com.innitsocial.abcdish.moderation.ModerationStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -60,6 +61,27 @@ public interface ContestEntryRepository extends JpaRepository<ContestEntry, Long
     List<ContestEntry> findActiveContestEntries(
             @Param("moderationStatus") ModerationStatus moderationStatus,
             @Param("now") LocalDateTime now
+    );
+
+    @Query("""
+            select entry
+            from ContestEntry entry
+            where entry.moderationStatus = :moderationStatus
+            and entry.eligibleForVoting = true
+            and entry.competitionStatus <> 'WINNER'
+            and exists (
+                select contest.id
+                from Contest contest
+                where contest.id = entry.contestId
+                and contest.status = com.innitsocial.abcdish.contest.entity.ContestStatus.OPEN
+                and (contest.endsAt is null or contest.endsAt > :now)
+            )
+            order by entry.votes desc, entry.createdAt desc
+            """)
+    List<ContestEntry> findActiveContestEntries(
+            @Param("moderationStatus") ModerationStatus moderationStatus,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
     );
 
     void deleteByUserId(Long userId);

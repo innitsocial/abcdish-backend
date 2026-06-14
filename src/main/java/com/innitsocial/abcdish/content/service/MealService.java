@@ -28,11 +28,12 @@ public class MealService {
 
     @Transactional(readOnly = true)
     public List<Meal> findApproved() {
-        return mealRepository.findByModerationStatus(ModerationStatus.APPROVED);
+        return mealRepository.findWithDetailsByModerationStatus(ModerationStatus.APPROVED);
     }
 
+    @Transactional(readOnly = true)
     public Meal findById(Long id) {
-        return mealRepository.findById(id)
+        return mealRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RuntimeException("Meal not found: " + id));
     }
 

@@ -54,7 +54,7 @@ public class Meal {
 
     private String affordability;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "meal_categories",
             joinColumns = @JoinColumn(name = "meal_id")
@@ -62,7 +62,7 @@ public class Meal {
     @Column(name = "category_id")
     private List<String> categories;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "meal_ingredients",
             joinColumns = @JoinColumn(name = "meal_id")

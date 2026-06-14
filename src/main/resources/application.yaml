@@ -39,6 +39,21 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+  cache:
+    redis:
+      enabled: ${REDIS_ENABLED:false}
+      url: ${REDIS_URL:}
+      key-prefix: ${REDIS_KEY_PREFIX:abcdish}
+    ttl:
+      feed-seconds: ${CACHE_TTL_FEED_SECONDS:45}
+      categories-seconds: ${CACHE_TTL_CATEGORIES_SECONDS:3600}
+      meal-detail-seconds: ${CACHE_TTL_MEAL_DETAIL_SECONDS:600}
+  jobs:
+    worker:
+      enabled: ${JOBS_WORKER_ENABLED:true}
+      batch-size: ${JOBS_WORKER_BATCH_SIZE:5}
+      fixed-delay-ms: ${JOBS_WORKER_FIXED_DELAY_MS:5000}
+      max-attempts: ${JOBS_WORKER_MAX_ATTEMPTS:5}
   media:
     storage-path: ${MEDIA_STORAGE_PATH:uploads/media}
     provider: ${APP_MEDIA_PROVIDER:local}

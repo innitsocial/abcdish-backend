@@ -2,6 +2,8 @@ package com.innitsocial.abcdish.content.repository;
 
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.moderation.ModerationStatus;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,7 +14,15 @@ import java.util.Optional;
 public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findByModerationStatus(ModerationStatus moderationStatus);
 
+    @EntityGraph(attributePaths = {"categories", "ingredients", "steps"})
+    List<Meal> findWithDetailsByModerationStatus(ModerationStatus moderationStatus);
+
+    List<Meal> findByModerationStatusOrderByIdAsc(ModerationStatus moderationStatus, Pageable pageable);
+
     long countByModerationStatus(ModerationStatus moderationStatus);
 
     Optional<Meal> findByRecipeCode(String recipeCode);
+
+    @EntityGraph(attributePaths = {"categories", "ingredients", "steps"})
+    Optional<Meal> findWithDetailsById(Long id);
 }

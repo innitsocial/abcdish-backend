@@ -51,6 +51,28 @@ public record FeedItemResponse(
         return fromMeal(meal, null, likeCount, commentCount, shareCount, likedByCurrentUser, followedByCurrentUser);
     }
 
+    public static FeedItemResponse compactFromMeal(
+            Meal meal,
+            MealTranslation translation,
+            long likeCount,
+            long commentCount,
+            long shareCount,
+            boolean likedByCurrentUser,
+            boolean followedByCurrentUser
+    ) {
+        return fromMeal(
+                meal,
+                translation,
+                List.of(),
+                List.of(),
+                likeCount,
+                commentCount,
+                shareCount,
+                likedByCurrentUser,
+                followedByCurrentUser
+        );
+    }
+
     public static FeedItemResponse fromMeal(
             Meal meal,
             MealTranslation translation,
@@ -65,6 +87,34 @@ public record FeedItemResponse(
         String description = translation == null ? meal.getDescription() : translation.getDescription();
         List<String> ingredients = translation == null ? meal.getIngredients() : translation.getIngredients();
         List<String> steps = translation == null ? meal.getSteps() : translation.getSteps();
+
+        return fromMeal(
+                meal,
+                translation,
+                ingredients,
+                steps,
+                likeCount,
+                commentCount,
+                shareCount,
+                likedByCurrentUser,
+                followedByCurrentUser
+        );
+    }
+
+    private static FeedItemResponse fromMeal(
+            Meal meal,
+            MealTranslation translation,
+            List<String> ingredients,
+            List<String> steps,
+            long likeCount,
+            long commentCount,
+            long shareCount,
+            boolean likedByCurrentUser,
+            boolean followedByCurrentUser
+    ) {
+        String creatorKey = creatorKey(meal);
+        String title = translation == null ? meal.getTitle() : translation.getTitle();
+        String description = translation == null ? meal.getDescription() : translation.getDescription();
 
         return new FeedItemResponse(
                 meal.getId(),
