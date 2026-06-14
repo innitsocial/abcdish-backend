@@ -61,11 +61,14 @@ public class MealService {
                 .moderationReason(moderation.reason())
                 .build();
 
-        return mealRepository.save(meal);
+        Meal savedMeal = mealRepository.save(meal);
+        ensureRecipeCode(savedMeal);
+        return mealRepository.save(savedMeal);
     }
 
     public Meal update(Long id, MealRequestDto request) {
         Meal meal = findById(id);
+        ensureRecipeCode(meal);
 
         meal.setTitle(request.title());
         meal.setDescription(request.description());
@@ -110,5 +113,23 @@ public class MealService {
 
     private String clean(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void ensureRecipeCode(Meal meal) {
+        if (meal.getRecipeCode() != null && !meal.getRecipeCode().isBlank()) {
+            return;
+        }
+
+        Long id = meal.getId();
+        if (id == null) {
+            return;
+        }
+
+        long candidate = 10000 + id;
+        while (mealRepository.findByRecipeCode(String.valueOf(candidate)).isPresent()) {
+            candidate++;
+        }
+
+        meal.setRecipeCode(String.valueOf(candidate));
     }
 }

@@ -6,6 +6,7 @@ import java.util.List;
 
 public record MealResponseDto(
         Long id,
+        String recipeCode,
         String title,
         String description,
         String imageUrl,
@@ -30,6 +31,7 @@ public record MealResponseDto(
     public static MealResponseDto fromEntity(Meal meal) {
         return new MealResponseDto(
                 meal.getId(),
+                recipeCodeFor(meal),
                 meal.getTitle(),
                 meal.getDescription(),
                 meal.getImageUrl(),
@@ -51,5 +53,13 @@ public record MealResponseDto(
                 meal.getModerationStatus() == null ? "APPROVED" : meal.getModerationStatus().name(),
                 meal.getModerationReason()
         );
+    }
+
+    private static String recipeCodeFor(Meal meal) {
+        if (meal.getRecipeCode() != null && !meal.getRecipeCode().isBlank()) {
+            return meal.getRecipeCode();
+        }
+
+        return meal.getId() == null ? "" : String.valueOf(10000 + meal.getId());
     }
 }

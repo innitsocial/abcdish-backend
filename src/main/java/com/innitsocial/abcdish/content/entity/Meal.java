@@ -21,6 +21,9 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "recipe_code", unique = true, length = 16)
+    private String recipeCode;
+
     @Column(nullable = false)
     private String title;
 

@@ -169,6 +169,7 @@ public class DataSeeder implements CommandLineRunner {
             );
 
             mealRepository.saveAll(meals);
+            backfillRecipeCodes();
         }
 
         log.info("ABCDish sample data seeded successfully.");
@@ -199,6 +200,20 @@ public class DataSeeder implements CommandLineRunner {
 
     private void repairModerationColumns() {
         try {
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS recipe_code VARCHAR(16)
+                    """);
+            jdbcTemplate.execute("""
+                    UPDATE abcdish.meals
+                    SET recipe_code = (10000 + id)::TEXT
+                    WHERE recipe_code IS NULL OR recipe_code = ''
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS uk_meals_recipe_code
+                    ON abcdish.meals (recipe_code)
+                    WHERE recipe_code IS NOT NULL
+                    """);
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.meals
                     ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'APPROVED'
@@ -258,6 +273,18 @@ public class DataSeeder implements CommandLineRunner {
                     """);
         } catch (DataAccessException error) {
             log.warn("Could not repair moderation columns", error);
+        }
+    }
+
+    private void backfillRecipeCodes() {
+        try {
+            jdbcTemplate.execute("""
+                    UPDATE abcdish.meals
+                    SET recipe_code = (10000 + id)::TEXT
+                    WHERE recipe_code IS NULL OR recipe_code = ''
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not backfill recipe codes", error);
         }
     }
 }
