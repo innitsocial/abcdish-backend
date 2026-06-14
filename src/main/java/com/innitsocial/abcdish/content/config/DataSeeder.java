@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,6 +35,9 @@ public class DataSeeder implements CommandLineRunner {
     private final MealRepository mealRepository;
     private final ContestRepository contestRepository;
     private final JdbcTemplate jdbcTemplate;
+
+    @Value("${app.seed.recipe-ideas.reset:false}")
+    private boolean resetRecipeIdeas;
 
     @Override
     public void run(String... args) {
@@ -572,7 +576,10 @@ public class DataSeeder implements CommandLineRunner {
                 return;
             }
 
-            jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas WHERE source = ?", "ABCDish seed CSV");
+            if (resetRecipeIdeas) {
+                jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas WHERE source = ?", "ABCDish seed CSV");
+                log.info("Reset ABCDish seed recipe ideas before import");
+            }
 
             int imported = 0;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -628,16 +635,16 @@ public class DataSeeder implements CommandLineRunner {
                                         key_ingredients = EXCLUDED.key_ingredients,
                                         launch_notes = EXCLUDED.launch_notes,
                                         suggested_tags = EXCLUDED.suggested_tags,
-                                        thumbnail_url = EXCLUDED.thumbnail_url,
+                                        thumbnail_url = COALESCE(NULLIF(abcdish.recipe_ideas.thumbnail_url, ''), EXCLUDED.thumbnail_url),
                                         image_prompt = EXCLUDED.image_prompt,
-                                        dummy_video_url = EXCLUDED.dummy_video_url,
-                                        dummy_trailer_url = EXCLUDED.dummy_trailer_url,
+                                        dummy_video_url = COALESCE(NULLIF(abcdish.recipe_ideas.dummy_video_url, ''), EXCLUDED.dummy_video_url),
+                                        dummy_trailer_url = COALESCE(NULLIF(abcdish.recipe_ideas.dummy_trailer_url, ''), EXCLUDED.dummy_trailer_url),
                                         caption_text = EXCLUDED.caption_text,
                                         ai_narration_script = EXCLUDED.ai_narration_script,
                                         background_music_style = EXCLUDED.background_music_style,
                                         color_palette = EXCLUDED.color_palette,
                                         video_generation_prompt = EXCLUDED.video_generation_prompt,
-                                        video_status = EXCLUDED.video_status,
+                                        video_status = COALESCE(NULLIF(abcdish.recipe_ideas.video_status, ''), EXCLUDED.video_status),
                                         source = EXCLUDED.source
                                     """,
                             section,

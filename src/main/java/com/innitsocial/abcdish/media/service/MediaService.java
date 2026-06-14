@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -81,6 +82,21 @@ public class MediaService {
 
     public MediaUploadResponse uploadRecipeVideo(MultipartFile file, HttpServletRequest request) {
         return uploadVideo(file, request, "recipe-video", "recipe-videos", "Recipe video uploaded");
+    }
+
+    public String uploadGeneratedMedia(String objectKey, byte[] bytes, String contentType) {
+        if (bytes == null || bytes.length == 0) {
+            throw new RuntimeException("Generated media file is empty");
+        }
+
+        String cleanedObjectKey = cleanObjectKey(objectKey);
+        String cleanedContentType = clean(contentType).isEmpty() ? "application/octet-stream" : clean(contentType);
+
+        if ("r2".equals(provider) || "s3".equals(provider)) {
+            return uploadGeneratedMediaToR2(cleanedObjectKey, bytes, cleanedContentType);
+        }
+
+        return uploadGeneratedMediaToLocal(cleanedObjectKey, bytes);
     }
 
     private MediaUploadResponse uploadVideo(
@@ -205,6 +221,50 @@ public class MediaService {
         }
     }
 
+    private String uploadGeneratedMediaToR2(String objectKey, byte[] bytes, String contentType) {
+        validateR2Config();
+
+        try (InputStream inputStream = new ByteArrayInputStream(bytes);
+             S3Client s3Client = S3Client.builder()
+                     .endpointOverride(URI.create(r2Endpoint))
+                     .region(Region.of(r2Region))
+                     .credentialsProvider(StaticCredentialsProvider.create(
+                             AwsBasicCredentials.create(r2AccessKeyId, r2SecretAccessKey)
+                     ))
+                     .httpClientBuilder(UrlConnectionHttpClient.builder())
+                     .forcePathStyle(true)
+                     .build()) {
+
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(r2Bucket)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .contentLength((long) bytes.length)
+                    .build();
+
+            s3Client.putObject(request, RequestBody.fromInputStream(inputStream, bytes.length));
+
+            return publicBaseUrl + "/" + objectKey;
+        } catch (IOException error) {
+            throw new RuntimeException("Unable to upload generated media", error);
+        }
+    }
+
+    private String uploadGeneratedMediaToLocal(String objectKey, byte[] bytes) {
+        try {
+            Files.createDirectories(storagePath);
+            Path destination = storagePath.resolve(objectKey).normalize();
+            if (!destination.startsWith(storagePath)) {
+                throw new RuntimeException("Invalid generated media path");
+            }
+            Files.createDirectories(destination.getParent());
+            Files.write(destination, bytes);
+            return "/api/media/files/" + destination.getFileName();
+        } catch (IOException error) {
+            throw new RuntimeException("Unable to upload generated media", error);
+        }
+    }
+
     private void validateR2Config() {
         if (r2Endpoint.isEmpty() ||
                 r2Bucket.isEmpty() ||
@@ -228,6 +288,17 @@ public class MediaService {
         String cleaned = clean(value);
         while (cleaned.endsWith("/")) {
             cleaned = cleaned.substring(0, cleaned.length() - 1);
+        }
+        return cleaned;
+    }
+
+    private String cleanObjectKey(String value) {
+        String cleaned = clean(value).replace("\\", "/");
+        while (cleaned.startsWith("/")) {
+            cleaned = cleaned.substring(1);
+        }
+        if (cleaned.isEmpty() || cleaned.contains("..")) {
+            throw new RuntimeException("Invalid generated media object key");
         }
         return cleaned;
     }
