@@ -333,45 +333,82 @@ public class DataSeeder implements CommandLineRunner {
                 log.info("Reset ABCDish recipe idea categories");
             }
 
-            int sections = jdbcTemplate.update("""
-                    INSERT INTO abcdish.categories (id, title, color_code)
-                    SELECT DISTINCT
-                        'ri-section-' || LOWER(REGEXP_REPLACE(section, '[^a-zA-Z0-9]+', '-', 'g')),
-                        section,
-                        '#2E7D32'
+            int sections = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(DISTINCT section)
                     FROM abcdish.recipe_ideas
                     WHERE COALESCE(NULLIF(section, ''), '') <> ''
-                    ON CONFLICT (id) DO UPDATE SET
-                        title = EXCLUDED.title,
-                        color_code = EXCLUDED.color_code
-                    """);
-
-            int filters = jdbcTemplate.update("""
-                    INSERT INTO abcdish.categories (id, title, color_code)
-                    SELECT DISTINCT
-                        'ri-filter-' || LOWER(REGEXP_REPLACE(filter_category, '[^a-zA-Z0-9]+', '-', 'g')),
-                        filter_category,
-                        CASE
-                            WHEN section = 'Meal Moment' THEN '#F2A65A'
-                            WHEN section = 'Cuisine' THEN '#D94F30'
-                            WHEN section = 'Diet / Protein' THEN '#2E7D32'
-                            WHEN section = 'Allergy / Intolerance' THEN '#00897B'
-                            WHEN section = 'Cooking Time' THEN '#6A8DFF'
-                            WHEN section = 'Difficulty' THEN '#8E5CF7'
-                            WHEN section = 'Cooking Method' THEN '#795548'
-                            WHEN section = 'Taste / Style' THEN '#C2185B'
-                            WHEN section = 'Budget' THEN '#607D8B'
-                            WHEN section = 'Health / Goal' THEN '#43A047'
-                            ELSE '#2E7D32'
-                        END
+                    """, Integer.class);
+            int filters = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(DISTINCT filter_category)
                     FROM abcdish.recipe_ideas
                     WHERE COALESCE(NULLIF(filter_category, ''), '') <> ''
+                    """, Integer.class);
+
+            int categoryCount = jdbcTemplate.update("""
+                    INSERT INTO abcdish.categories (id, title, color_code)
+                    WITH palette(color_code) AS (
+                        SELECT ARRAY[
+                            '#E94335', '#2E7D32', '#F2A65A', '#00897B', '#6A8DFF',
+                            '#8E5CF7', '#C2185B', '#795548', '#607D8B', '#F4511E',
+                            '#00A676', '#D81B60', '#5E35B1', '#1E88E5', '#43A047',
+                            '#FB8C00', '#6D4C41', '#3949AB', '#039BE5', '#7CB342',
+                            '#EF5350', '#26A69A', '#AB47BC', '#FFA726', '#66BB6A',
+                            '#29B6F6', '#EC407A', '#FF7043', '#9CCC65', '#5C6BC0',
+                            '#D4A017', '#00796B', '#AD1457', '#512DA8', '#1976D2',
+                            '#689F38', '#E64A19', '#455A64', '#AFB42B', '#0097A7',
+                            '#BA68C8', '#F57C00', '#388E3C', '#0288D1', '#F06292',
+                            '#A1887F', '#7B1FA2', '#C0CA33', '#00695C', '#D84315',
+                            '#8BC34A', '#03A9F4', '#FF9800', '#9C27B0', '#4CAF50',
+                            '#00BCD4', '#FF5722', '#3F51B5', '#CDDC39', '#E91E63',
+                            '#B71C1C', '#1B5E20', '#E65100', '#004D40', '#0D47A1',
+                            '#4A148C', '#880E4F', '#3E2723', '#263238', '#827717',
+                            '#BF360C', '#33691E', '#01579B', '#311B92', '#F9A825',
+                            '#006064', '#C62828', '#2E7D6F', '#1565C0', '#6A1B9A',
+                            '#EF6C00', '#558B2F', '#00838F', '#C21807', '#4527A0',
+                            '#AD8B00', '#B45F06', '#C51162', '#304FFE', '#64A70B',
+                            '#FF6F00', '#008577', '#AA00FF', '#2962FF', '#00A152',
+                            '#DD2C00', '#0091EA', '#6200EA', '#00BFA5', '#AEEA00',
+                            '#FFAB00', '#FF1744', '#651FFF', '#00B8D4', '#76FF03',
+                            '#FFD600', '#A52714', '#0B8043', '#F09300', '#5F6368',
+                            '#8E24AA', '#1A73E8', '#188038', '#D93025', '#F9AB00',
+                            '#12B5CB', '#9334E6', '#E8710A', '#137333', '#A142F4'
+                        ]::TEXT[]
+                    ),
+                    category_source AS (
+                        SELECT DISTINCT
+                            'ri-section-' || LOWER(REGEXP_REPLACE(section, '[^a-zA-Z0-9]+', '-', 'g')) AS id,
+                            section AS title,
+                            0 AS sort_group
+                        FROM abcdish.recipe_ideas
+                        WHERE COALESCE(NULLIF(section, ''), '') <> ''
+                        UNION ALL
+                        SELECT DISTINCT
+                            'ri-filter-' || LOWER(REGEXP_REPLACE(filter_category, '[^a-zA-Z0-9]+', '-', 'g')) AS id,
+                            filter_category AS title,
+                            1 AS sort_group
+                        FROM abcdish.recipe_ideas
+                        WHERE COALESCE(NULLIF(filter_category, ''), '') <> ''
+                    ),
+                    numbered_categories AS (
+                        SELECT
+                            id,
+                            title,
+                            ROW_NUMBER() OVER (ORDER BY sort_group, title) AS color_index
+                        FROM category_source
+                    )
+                    SELECT
+                        category.id,
+                        category.title,
+                        palette.color_code[((category.color_index - 1) % ARRAY_LENGTH(palette.color_code, 1)) + 1]
+                    FROM numbered_categories category
+                    CROSS JOIN palette
                     ON CONFLICT (id) DO UPDATE SET
                         title = EXCLUDED.title,
                         color_code = EXCLUDED.color_code
                     """);
 
-            log.info("Seeded ABCDish recipe idea categories sections={} filters={}", sections, filters);
+            log.info("Seeded ABCDish recipe idea categories sections={} filters={} totalChanged={}",
+                    sections, filters, categoryCount);
         } catch (DataAccessException error) {
             log.warn("Could not seed ABCDish recipe idea categories", error);
         }
@@ -539,12 +576,35 @@ public class DataSeeder implements CommandLineRunner {
 
         jdbcTemplate.execute("""
                 INSERT INTO abcdish.meal_ingredients (meal_id, ingredient)
+                SELECT meal.id, TRIM(ingredient)
+                FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
+                CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(idea.detailed_ingredients::jsonb) ingredient
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND COALESCE(NULLIF(idea.detailed_ingredients, ''), '') <> ''
+                  AND COALESCE(NULLIF(TRIM(ingredient), ''), '') <> ''
+                """);
+
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_ingredients (meal_id, ingredient)
                 SELECT meal.id, INITCAP(TRIM(ingredient))
                 FROM abcdish.meals meal
                 JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
-                CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(COALESCE(NULLIF(idea.key_ingredients, ''), 'Verify ingredients'), ',') ingredient
+                CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(COALESCE(NULLIF(idea.key_ingredients, ''), 'Salt, black pepper'), ',') ingredient
                 WHERE meal.recipe_code LIKE 'RI%'
+                  AND COALESCE(NULLIF(idea.detailed_ingredients, ''), '') = ''
                   AND COALESCE(NULLIF(TRIM(ingredient), ''), '') <> ''
+                """);
+
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_steps (meal_id, step)
+                SELECT meal.id, TRIM(step)
+                FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
+                CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(idea.detailed_steps::jsonb) step
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND COALESCE(NULLIF(idea.detailed_steps, ''), '') <> ''
+                  AND COALESCE(NULLIF(TRIM(step), ''), '') <> ''
                 """);
 
         jdbcTemplate.execute("""
@@ -554,12 +614,13 @@ public class DataSeeder implements CommandLineRunner {
                 JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
                 CROSS JOIN LATERAL (
                     VALUES
-                        ('Gather ingredients for ' || idea.recipe_name || ': ' || COALESCE(NULLIF(idea.key_ingredients, ''), 'verify ingredients from the recipe plan') || '.'),
-                        ('Prepare the ingredients and follow the ABCDish video plan for ' || idea.recipe_name || '.'),
-                        ('Cook using the selected style: ' || COALESCE(NULLIF(idea.filter_category, ''), 'ABCDish recipe') || '.'),
-                        ('Finish, taste, plate, and review captions/narration before publishing. Notes: ' || COALESCE(NULLIF(idea.launch_notes, ''), 'ready for editorial review') || '.')
+                        ('Gather and measure the ingredients for ' || idea.recipe_name || ': ' || COALESCE(NULLIF(idea.key_ingredients, ''), 'main ingredients, seasoning, oil, and salt') || '.'),
+                        ('Wash, trim, chop, slice, grind, or marinate the ingredients as needed before heating the pan, oven, grill, or pot.'),
+                        ('Cook the dish in the selected style: ' || COALESCE(NULLIF(idea.filter_category, ''), 'ABCDish recipe') || ', adjusting heat, seasoning, and texture as the food cooks.'),
+                        ('Taste carefully, correct salt, acidity, sweetness, spice, or richness, then plate and garnish the dish while it is fresh.')
                 ) steps(step)
                 WHERE meal.recipe_code LIKE 'RI%'
+                  AND COALESCE(NULLIF(idea.detailed_steps, ''), '') = ''
                 """);
     }
 
@@ -849,6 +910,22 @@ public class DataSeeder implements CommandLineRunner {
     private void repairRecipeIdeaTables() {
         try {
             jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meal_ingredients
+                    ALTER COLUMN ingredient TYPE TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meal_steps
+                    ALTER COLUMN step TYPE TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meal_translation_ingredients
+                    ALTER COLUMN ingredient TYPE TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meal_translation_steps
+                    ALTER COLUMN step TYPE TEXT
+                    """);
+            jdbcTemplate.execute("""
                     CREATE TABLE IF NOT EXISTS abcdish.recipe_ideas (
                         id BIGSERIAL PRIMARY KEY,
                         section VARCHAR(255) NOT NULL,
@@ -868,6 +945,9 @@ public class DataSeeder implements CommandLineRunner {
                         color_palette VARCHAR(255),
                         video_generation_prompt TEXT,
                         video_status VARCHAR(255) DEFAULT 'READY_FOR_AI_GENERATION',
+                        detailed_ingredients TEXT,
+                        detailed_steps TEXT,
+                        detail_status VARCHAR(255) DEFAULT 'READY_FOR_DETAIL_GENERATION',
                         source VARCHAR(255) DEFAULT 'ABCDish seed CSV',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         CONSTRAINT uk_recipe_ideas_section_filter_recipe UNIQUE (section, filter_category, recipe_name)
@@ -912,6 +992,18 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.recipe_ideas
                     ADD COLUMN IF NOT EXISTS video_status VARCHAR(255) DEFAULT 'READY_FOR_AI_GENERATION'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS detailed_ingredients TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS detailed_steps TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS detail_status VARCHAR(255) DEFAULT 'READY_FOR_DETAIL_GENERATION'
                     """);
             jdbcTemplate.execute("""
                     CREATE INDEX IF NOT EXISTS idx_recipe_ideas_filter_category
