@@ -232,12 +232,88 @@ public class DataSeeder implements CommandLineRunner {
     private void deleteSampleFeedMeals() {
         try {
             jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_categories
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_ingredients
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_steps
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_likes
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_comments
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.meal_shares
+                    WHERE meal_id IN (
+                        SELECT id
+                        FROM abcdish.meals
+                        WHERE title IN (
+                            'Butter Chicken',
+                            'Healthy Avocado Toast',
+                            'Quick Pasta'
+                        )
+                    )
+                    """);
+            jdbcTemplate.update("""
                     DELETE FROM abcdish.meals
                     WHERE title IN (
                         'Butter Chicken',
                         'Healthy Avocado Toast',
                         'Quick Pasta'
                     )
+                    """);
+            jdbcTemplate.update("""
+                    DELETE FROM abcdish.categories
+                    WHERE id IN ('c1', 'c2', 'c3', 'c4', 'c5')
                     """);
             log.info("Removed old ABCDish sample feed meals");
         } catch (DataAccessException error) {
