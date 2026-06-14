@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,6 +30,7 @@ import java.util.List;
 @Component
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
+@Order(10)
 public class DataSeeder implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
@@ -577,8 +579,8 @@ public class DataSeeder implements CommandLineRunner {
             }
 
             if (resetRecipeIdeas) {
-                jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas WHERE source = ?", "ABCDish seed CSV");
-                log.info("Reset ABCDish seed recipe ideas before import");
+                jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas");
+                log.info("Reset all ABCDish recipe ideas before import");
             }
 
             int imported = 0;

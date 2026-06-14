@@ -73,7 +73,7 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
                                dummy_video_url,
                                dummy_trailer_url
                         FROM abcdish.recipe_ideas
-                        WHERE video_status = 'READY_FOR_AI_GENERATION'
+                        WHERE COALESCE(NULLIF(video_status, ''), 'READY_FOR_AI_GENERATION') = 'READY_FOR_AI_GENERATION'
                         ORDER BY id
                         LIMIT ?
                         """,
