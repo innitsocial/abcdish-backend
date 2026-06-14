@@ -9,6 +9,7 @@ import com.innitsocial.abcdish.auth.repository.AppUserRepository;
 import com.innitsocial.abcdish.auth.repository.OtpCodeRepository;
 import com.innitsocial.abcdish.auth.repository.RefreshTokenRepository;
 import com.innitsocial.abcdish.auth.repository.UserSessionRepository;
+import com.innitsocial.abcdish.contest.repository.ContestEntryLikeRepository;
 import com.innitsocial.abcdish.contest.repository.ContestEntryRepository;
 import com.innitsocial.abcdish.membership.repository.VideoViewRepository;
 import com.innitsocial.abcdish.shopping.repository.ShoppingListItemRepository;
@@ -51,6 +52,7 @@ public class AuthService {
     private final MealLikeRepository mealLikeRepository;
     private final MealShareRepository mealShareRepository;
     private final VideoViewRepository videoViewRepository;
+    private final ContestEntryLikeRepository contestEntryLikeRepository;
     private final ContestEntryRepository contestEntryRepository;
 
 
@@ -337,6 +339,7 @@ public class AuthService {
         mealLikeRepository.deleteByUserId(userId);
         mealShareRepository.deleteByUserId(userId);
         videoViewRepository.deleteByUserId(userId);
+        contestEntryLikeRepository.deleteByUserId(userId);
         contestEntryRepository.deleteByUserId(userId);
 
         if (email != null && !email.isBlank()) {

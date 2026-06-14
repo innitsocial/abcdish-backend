@@ -12,10 +12,17 @@ public record ContestEntryResponse(
         String thumbnailUrl,
         long votes,
         boolean approved,
+        boolean likedByCurrentUser,
+        long acceptanceThreshold,
+        Long acceptedMealId,
         String moderationStatus,
         String moderationReason
 ) {
-    public static ContestEntryResponse fromEntity(ContestEntry entry) {
+    public static ContestEntryResponse fromEntity(
+            ContestEntry entry,
+            boolean likedByCurrentUser,
+            long acceptanceThreshold
+    ) {
         return new ContestEntryResponse(
                 entry.getId(),
                 entry.getContestId(),
@@ -26,6 +33,9 @@ public record ContestEntryResponse(
                 entry.getThumbnailUrl(),
                 entry.getVotes(),
                 entry.isApproved(),
+                likedByCurrentUser,
+                acceptanceThreshold,
+                entry.getAcceptedMealId(),
                 entry.getModerationStatus() == null ? "PENDING_REVIEW" : entry.getModerationStatus().name(),
                 entry.getModerationReason()
         );

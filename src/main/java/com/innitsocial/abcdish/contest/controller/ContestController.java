@@ -25,7 +25,7 @@ public class ContestController {
 
     @GetMapping("/{contestId}/entries")
     public List<ContestEntryResponse> approvedEntries(@PathVariable Long contestId) {
-        return contestService.approvedEntries(contestId);
+        return contestService.approvedEntries(contestId, SecurityUtils.currentUserIdOptional());
     }
 
     @PostMapping("/{contestId}/entries")
@@ -34,5 +34,20 @@ public class ContestController {
             @Valid @RequestBody ContestEntryRequest request
     ) {
         return contestService.submitEntry(SecurityUtils.currentUserId(), contestId, request);
+    }
+
+    @PostMapping("/entries/{entryId}/likes")
+    public ContestEntryResponse likeEntry(@PathVariable Long entryId) {
+        return contestService.likeEntry(SecurityUtils.currentUserId(), entryId);
+    }
+
+    @DeleteMapping("/entries/{entryId}/likes")
+    public ContestEntryResponse unlikeEntry(@PathVariable Long entryId) {
+        return contestService.unlikeEntry(SecurityUtils.currentUserId(), entryId);
+    }
+
+    @PostMapping("/entries/{entryId}/accept")
+    public ContestEntryResponse acceptEntry(@PathVariable Long entryId) {
+        return contestService.acceptEntry(entryId);
     }
 }

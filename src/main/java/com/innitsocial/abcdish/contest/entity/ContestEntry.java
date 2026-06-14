@@ -36,6 +36,24 @@ public class ContestEntry {
 
     private boolean approved;
 
+    @Column(name = "accepted_meal_id")
+    private Long acceptedMealId;
+
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    private Integer duration;
+
+    private String complexity;
+
+    private boolean glutenFree;
+
+    private boolean lactoseFree;
+
+    private boolean vegan;
+
+    private boolean vegetarian;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private ModerationStatus moderationStatus = ModerationStatus.PENDING_REVIEW;

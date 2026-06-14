@@ -50,6 +50,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/meals/**").hasAnyRole("ADMIN", "CREATOR")
                         .requestMatchers(HttpMethod.POST, "/api/contests/*/entries").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/contests/entries/*/likes").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/contests/entries/*/likes").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/contests/entries/*/accept").hasRole("ADMIN")
 
                         .requestMatchers("/api/profile/**").authenticated()
                         .requestMatchers("/api/membership/**").authenticated()

@@ -4,6 +4,9 @@ import com.innitsocial.abcdish.content.entity.Category;
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.repository.CategoryRepository;
 import com.innitsocial.abcdish.content.repository.MealRepository;
+import com.innitsocial.abcdish.contest.entity.Contest;
+import com.innitsocial.abcdish.contest.entity.ContestStatus;
+import com.innitsocial.abcdish.contest.repository.ContestRepository;
 import com.innitsocial.abcdish.moderation.ModerationStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Component
@@ -23,6 +27,7 @@ public class DataSeeder implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
     private final MealRepository mealRepository;
+    private final ContestRepository contestRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -30,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
         repairOtpPurposeConstraint();
         repairModerationColumns();
         repairStoryEngagementTables();
+        repairContestAcceptanceTables();
 
         if (categoryRepository.count() == 0) {
 
@@ -171,6 +177,17 @@ public class DataSeeder implements CommandLineRunner {
 
             mealRepository.saveAll(meals);
             backfillRecipeCodes();
+        }
+
+        if (contestRepository.findByStatus(ContestStatus.OPEN).isEmpty()) {
+            contestRepository.save(Contest.builder()
+                    .title("Any Buddy Can Dish Quarterly Challenge")
+                    .description("Upload your best cooking video. Community likes unlock admin review, and standout recipes can be accepted into the ABCDish video recipe database after due diligence.")
+                    .prizeDescription("London quarterly cook-off invitation")
+                    .status(ContestStatus.OPEN)
+                    .startsAt(LocalDateTime.now())
+                    .endsAt(LocalDateTime.now().plusMonths(3))
+                    .build());
         }
 
         log.info("ABCDish sample data seeded successfully.");
@@ -319,6 +336,62 @@ public class DataSeeder implements CommandLineRunner {
                     """);
         } catch (DataAccessException error) {
             log.warn("Could not repair story engagement tables", error);
+        }
+    }
+
+    private void repairContestAcceptanceTables() {
+        try {
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS accepted_meal_id BIGINT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS duration INTEGER DEFAULT 30
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS complexity VARCHAR(255) DEFAULT 'simple'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS gluten_free BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS lactose_free BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS vegan BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS vegetarian BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.contest_entry_likes (
+                        id BIGSERIAL PRIMARY KEY,
+                        entry_id BIGINT NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uk_contest_entry_likes_entry_user UNIQUE (entry_id, user_id)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_contest_entry_likes_entry_id
+                    ON abcdish.contest_entry_likes(entry_id)
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_contest_entry_likes_user_id
+                    ON abcdish.contest_entry_likes(user_id)
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair contest acceptance tables", error);
         }
     }
 }
