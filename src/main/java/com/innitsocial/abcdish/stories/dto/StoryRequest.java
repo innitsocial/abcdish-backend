@@ -15,6 +15,8 @@ public record StoryRequest(
         String imageUrl,
 
         @Size(max = 1000)
-        String videoUrl
+        String videoUrl,
+
+        Long contestEntryId
 ) {
 }

@@ -19,6 +19,7 @@ public class MealService {
 
     private final MealRepository mealRepository;
     private final ContentModerationService contentModerationService;
+    private final CatalogCapacityService catalogCapacityService;
 
     @Transactional(readOnly = true)
     public List<Meal> findAll() {
@@ -37,6 +38,9 @@ public class MealService {
 
     public Meal create(MealRequestDto request) {
         ModerationResult moderation = moderate(request);
+        if (moderation.status() == ModerationStatus.APPROVED) {
+            catalogCapacityService.ensureCapacityAvailable();
+        }
 
         Meal meal = Meal.builder()
                 .title(request.title())

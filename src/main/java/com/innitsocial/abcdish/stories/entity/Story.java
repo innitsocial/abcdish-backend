@@ -34,6 +34,12 @@ public class Story {
     @Column(name = "video_url", length = 1000)
     private String videoUrl;
 
+    @Column(name = "contest_entry_id")
+    private Long contestEntryId;
+
+    @Column(name = "promoted_video_title")
+    private String promotedVideoTitle;
+
     private LocalDateTime expiresAt;
 
     private LocalDateTime createdAt;

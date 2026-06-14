@@ -271,6 +271,14 @@ public class DataSeeder implements CommandLineRunner {
                     ADD COLUMN IF NOT EXISTS moderation_reason VARCHAR(1000)
                     """);
             jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.stories
+                    ADD COLUMN IF NOT EXISTS contest_entry_id BIGINT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.stories
+                    ADD COLUMN IF NOT EXISTS promoted_video_title VARCHAR(255)
+                    """);
+            jdbcTemplate.execute("""
                     UPDATE abcdish.stories
                     SET moderation_status = 'APPROVED'
                     WHERE moderation_status IS NULL

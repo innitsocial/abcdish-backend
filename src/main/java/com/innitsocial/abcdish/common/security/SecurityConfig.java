@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/files/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/contests/my/entries").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/contests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/social/meals/*/comments").permitAll()
 

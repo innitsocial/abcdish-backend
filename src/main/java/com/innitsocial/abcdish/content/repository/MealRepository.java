@@ -12,5 +12,7 @@ import java.util.Optional;
 public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findByModerationStatus(ModerationStatus moderationStatus);
 
+    long countByModerationStatus(ModerationStatus moderationStatus);
+
     Optional<Meal> findByRecipeCode(String recipeCode);
 }

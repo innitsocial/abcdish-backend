@@ -3,6 +3,8 @@ package com.innitsocial.abcdish.stories.service;
 import com.innitsocial.abcdish.auth.entity.AppUser;
 import com.innitsocial.abcdish.auth.repository.AppUserRepository;
 import com.innitsocial.abcdish.common.security.SecurityUtils;
+import com.innitsocial.abcdish.contest.entity.ContestEntry;
+import com.innitsocial.abcdish.contest.repository.ContestEntryRepository;
 import com.innitsocial.abcdish.moderation.ContentModerationService;
 import com.innitsocial.abcdish.moderation.ModerationResult;
 import com.innitsocial.abcdish.moderation.ModerationStatus;
@@ -36,6 +38,7 @@ public class StoryService {
     private final ContentModerationService contentModerationService;
     private final StoryViewRepository storyViewRepository;
     private final StoryLikeRepository storyLikeRepository;
+    private final ContestEntryRepository contestEntryRepository;
 
     @Transactional(readOnly = true)
     public List<StoryResponse> getActiveStories() {
@@ -57,6 +60,7 @@ public class StoryService {
                 clean(request.title()),
                 clean(request.caption())
         ));
+        ContestEntry promotedEntry = promotedContestEntry(userId, request.contestEntryId());
 
         Story story = storyRepository.save(Story.builder()
                 .userId(userId)
@@ -64,6 +68,8 @@ public class StoryService {
                 .caption(clean(request.caption()))
                 .imageUrl(clean(request.imageUrl()))
                 .videoUrl(clean(request.videoUrl()))
+                .contestEntryId(promotedEntry == null ? null : promotedEntry.getId())
+                .promotedVideoTitle(promotedEntry == null ? null : promotedEntry.getTitle())
                 .moderationStatus(moderation.status())
                 .moderationReason(moderation.reason())
                 .build());
@@ -167,6 +173,25 @@ public class StoryService {
         }
 
         return story;
+    }
+
+    private ContestEntry promotedContestEntry(Long userId, Long contestEntryId) {
+        if (contestEntryId == null) {
+            return null;
+        }
+
+        ContestEntry entry = contestEntryRepository.findById(contestEntryId)
+                .orElseThrow(() -> new RuntimeException("Contest entry not found"));
+
+        if (!entry.getUserId().equals(userId)) {
+            throw new RuntimeException("You can only promote your own contest entry");
+        }
+
+        if (entry.getModerationStatus() != ModerationStatus.APPROVED) {
+            throw new RuntimeException("Contest entry must pass moderation before story promotion");
+        }
+
+        return entry;
     }
 
     private String clean(String value) {

@@ -23,6 +23,11 @@ public class ContestController {
         return contestService.findOpenContests();
     }
 
+    @GetMapping("/my/entries")
+    public List<ContestEntryResponse> myApprovedEntries() {
+        return contestService.myApprovedEntries(SecurityUtils.currentUserId());
+    }
+
     @GetMapping("/{contestId}/entries")
     public List<ContestEntryResponse> approvedEntries(@PathVariable Long contestId) {
         return contestService.approvedEntries(contestId, SecurityUtils.currentUserIdOptional());

@@ -11,6 +11,7 @@ import com.innitsocial.abcdish.contest.repository.ContestEntryRepository;
 import com.innitsocial.abcdish.contest.repository.ContestRepository;
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.repository.MealRepository;
+import com.innitsocial.abcdish.content.service.CatalogCapacityService;
 import com.innitsocial.abcdish.moderation.ContentModerationService;
 import com.innitsocial.abcdish.moderation.ModerationResult;
 import com.innitsocial.abcdish.moderation.ModerationStatus;
@@ -33,13 +34,14 @@ public class ContestService {
     private final ContestEntryLikeRepository contestEntryLikeRepository;
     private final MealRepository mealRepository;
     private final ContentModerationService contentModerationService;
+    private final CatalogCapacityService catalogCapacityService;
 
     @Value("${app.contests.acceptance-like-threshold:500}")
     private long acceptanceLikeThreshold;
 
     @Transactional(readOnly = true)
     public List<ContestResponse> findOpenContests() {
-        return contestRepository.findByStatus(ContestStatus.OPEN)
+        return contestRepository.findActiveByStatus(ContestStatus.OPEN, LocalDateTime.now())
                 .stream()
                 .map(ContestResponse::fromEntity)
                 .toList();
@@ -81,9 +83,22 @@ public class ContestService {
 
     @Transactional(readOnly = true)
     public List<ContestEntryResponse> approvedEntries(Long contestId, Optional<Long> currentUserId) {
-        return contestEntryRepository.findByContestIdAndModerationStatus(contestId, ModerationStatus.APPROVED)
+        return contestEntryRepository.findVisibleEntriesForContest(
+                        contestId,
+                        ModerationStatus.APPROVED,
+                        LocalDateTime.now()
+                )
                 .stream()
                 .map(entry -> toResponse(entry, currentUserId))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContestEntryResponse> myApprovedEntries(Long userId) {
+        return contestEntryRepository
+                .findByUserIdAndModerationStatusOrderByCreatedAtDesc(userId, ModerationStatus.APPROVED)
+                .stream()
+                .map(entry -> toResponse(entry, Optional.of(userId)))
                 .toList();
     }
 
@@ -149,6 +164,8 @@ public class ContestService {
             return mealRepository.findById(entry.getAcceptedMealId())
                     .orElseThrow(() -> new RuntimeException("Accepted meal not found"));
         }
+
+        catalogCapacityService.ensureCapacityAvailable();
 
         Meal meal = Meal.builder()
                 .title(entry.getTitle())

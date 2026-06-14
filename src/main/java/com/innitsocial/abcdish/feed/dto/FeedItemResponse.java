@@ -1,6 +1,7 @@
 package com.innitsocial.abcdish.feed.dto;
 
 import com.innitsocial.abcdish.content.entity.Meal;
+import com.innitsocial.abcdish.contest.entity.ContestEntry;
 
 import java.util.List;
 
@@ -27,7 +28,11 @@ public record FeedItemResponse(
         long commentCount,
         long shareCount,
         boolean likedByCurrentUser,
-        boolean followedByCurrentUser
+        boolean followedByCurrentUser,
+        Long contestId,
+        long acceptanceThreshold,
+        Long acceptedMealId,
+        boolean reviewUnlocked
 ) {
     public static FeedItemResponse fromMeal(
             Meal meal,
@@ -62,7 +67,50 @@ public record FeedItemResponse(
                 commentCount,
                 shareCount,
                 likedByCurrentUser,
-                followedByCurrentUser
+                followedByCurrentUser,
+                null,
+                0,
+                null,
+                false
+        );
+    }
+
+    public static FeedItemResponse fromContestEntry(
+            ContestEntry entry,
+            long voteCount,
+            boolean likedByCurrentUser,
+            long acceptanceThreshold
+    ) {
+        return new FeedItemResponse(
+                entry.getId(),
+                entry.getTitle(),
+                entry.getDescription(),
+                entry.getThumbnailUrl(),
+                entry.getVideoUrl(),
+                entry.getDuration() == null ? 30 : entry.getDuration(),
+                entry.getComplexity() == null || entry.getComplexity().isBlank()
+                        ? "simple"
+                        : entry.getComplexity(),
+                "affordable",
+                List.of("contest"),
+                List.of(),
+                List.of(),
+                entry.isGlutenFree(),
+                entry.isLactoseFree(),
+                entry.isVegan(),
+                entry.isVegetarian(),
+                "CONTEST_ENTRY",
+                "abcdish-contest",
+                "ABCDish Challenge",
+                voteCount,
+                0,
+                0,
+                likedByCurrentUser,
+                false,
+                entry.getContestId(),
+                acceptanceThreshold,
+                entry.getAcceptedMealId(),
+                voteCount >= acceptanceThreshold
         );
     }
 
