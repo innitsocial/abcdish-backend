@@ -47,6 +47,7 @@ app:
     ttl:
       feed-seconds: ${CACHE_TTL_FEED_SECONDS:45}
       categories-seconds: ${CACHE_TTL_CATEGORIES_SECONDS:3600}
+      meals-seconds: ${CACHE_TTL_MEALS_SECONDS:300}
       meal-detail-seconds: ${CACHE_TTL_MEAL_DETAIL_SECONDS:600}
   jobs:
     worker:

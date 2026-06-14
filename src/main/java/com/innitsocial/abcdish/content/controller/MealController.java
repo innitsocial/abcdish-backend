@@ -30,6 +30,9 @@ public class MealController {
     @Value("${app.cache.ttl.meal-detail-seconds:600}")
     private long mealDetailTtlSeconds;
 
+    @Value("${app.cache.ttl.meals-seconds:300}")
+    private long mealsTtlSeconds;
+
     @DeleteMapping("/{id}")
     public void deleteMeal(@PathVariable Long id) {
         mealService.delete(id);
@@ -40,13 +43,23 @@ public class MealController {
     public List<MealResponseDto> getAllMeals(
             @RequestHeader(value = "X-ABCDish-Language", required = false) String languageCode
     ) {
-        return mealService.findApproved()
-                .stream()
-                .map(meal -> MealResponseDto.fromEntity(
-                        meal,
-                        mealTranslationService.translationFor(meal, languageCode)
-                ))
-                .toList();
+        String language = cleanLanguage(languageCode);
+        String cacheKey = "meals:v1:lang=%s".formatted(language);
+
+        return appCacheService
+                .get(cacheKey, new TypeReference<List<MealResponseDto>>() {
+                })
+                .orElseGet(() -> {
+                    List<MealResponseDto> meals = mealService.findApproved()
+                            .stream()
+                            .map(meal -> MealResponseDto.fromEntity(
+                                    meal,
+                                    mealTranslationService.cachedTranslationFor(meal, language)
+                            ))
+                            .toList();
+                    appCacheService.set(cacheKey, meals, Duration.ofSeconds(mealsTtlSeconds));
+                    return meals;
+                });
     }
 
     @GetMapping("/manage")
@@ -81,7 +94,7 @@ public class MealController {
     @PostMapping
     public MealResponseDto createMeal(@Valid @RequestBody MealRequestDto request) {
         var response = MealResponseDto.fromEntity(mealService.create(request));
-        appCacheService.evictPrefix("feed:");
+        evictMealListCaches();
         return response;
     }
 
@@ -113,8 +126,13 @@ public class MealController {
     }
 
     private void evictMealCaches(Long id) {
-        appCacheService.evictPrefix("feed:");
+        evictMealListCaches();
         appCacheService.evictPrefix("meal-detail:v1:");
+    }
+
+    private void evictMealListCaches() {
+        appCacheService.evictPrefix("feed:");
+        appCacheService.evictPrefix("meals:");
         appCacheService.evictPrefix("categories:");
     }
 
