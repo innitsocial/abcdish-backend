@@ -97,11 +97,15 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
                 rows.size(), generateImages, generateVideos);
 
         for (RecipeIdeaRow row : rows) {
-            generateRecipeIdea(row);
+            boolean shouldContinue = generateRecipeIdea(row);
+            if (!shouldContinue) {
+                log.warn("Stopping ABCDish recipe idea generation batch early.");
+                return;
+            }
         }
     }
 
-    private void generateRecipeIdea(RecipeIdeaRow row) {
+    private boolean generateRecipeIdea(RecipeIdeaRow row) {
         try {
             updateStatus(row.id(), "IMAGE_GENERATING");
 
@@ -138,7 +142,9 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
 
             log.info("Generated recipe idea assets id={} recipe={} status={}",
                     row.id(), row.recipeName(), generateVideos ? "VIDEO_GENERATION_PENDING" : "DUMMY_VIDEO_READY");
+            return true;
         } catch (Exception error) {
+            String errorMessage = clean(error.getMessage());
             jdbcTemplate.update("""
                             UPDATE abcdish.recipe_ideas
                             SET video_status = 'FAILED'
@@ -147,7 +153,8 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
                     row.id()
             );
             log.warn("Recipe idea generation failed id={} recipe={}: {}",
-                    row.id(), row.recipeName(), error.getMessage());
+                    row.id(), row.recipeName(), errorMessage);
+            return !isBillingLimitError(errorMessage);
         }
     }
 
@@ -203,6 +210,13 @@ public class RecipeIdeaGenerationRunner implements CommandLineRunner {
 
     private String clean(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean isBillingLimitError(String value) {
+        String cleaned = clean(value).toLowerCase();
+        return cleaned.contains("billing_hard_limit_reached")
+                || cleaned.contains("billing hard limit")
+                || cleaned.contains("billing limit");
     }
 
     private String trimTrailingSlash(String value) {

@@ -579,7 +579,7 @@ public class DataSeeder implements CommandLineRunner {
             }
 
             if (resetRecipeIdeas) {
-                jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas");
+                resetRecipeIdeasTable();
                 log.info("Reset all ABCDish recipe ideas before import");
             }
 
@@ -675,6 +675,15 @@ public class DataSeeder implements CommandLineRunner {
             log.info("ABCDish recipe ideas seed processed rows={}", imported);
         } catch (Exception error) {
             log.warn("Could not import recipe ideas CSV", error);
+        }
+    }
+
+    private void resetRecipeIdeasTable() {
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE abcdish.recipe_ideas RESTART IDENTITY");
+        } catch (DataAccessException error) {
+            log.warn("Could not truncate recipe ideas table, falling back to delete", error);
+            jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas");
         }
     }
 
