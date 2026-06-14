@@ -52,8 +52,20 @@ public class MealController {
     }
 
     @PostMapping("/draft")
-    public RecipeDraftResponse createDraft(@RequestBody RecipeDraftRequest request) {
-        return recipeDraftService.createDraft(request);
+    public RecipeDraftResponse createDraft(
+            @RequestHeader(value = "X-ABCDish-Language", required = false) String languageCode,
+            @RequestBody RecipeDraftRequest request
+    ) {
+        RecipeDraftRequest localizedRequest = new RecipeDraftRequest(
+                request.sourceType(),
+                request.sourceUrl(),
+                request.titleHint(),
+                request.transcript(),
+                request.creatorName(),
+                languageCode == null || languageCode.isBlank() ? request.languageCode() : languageCode
+        );
+
+        return recipeDraftService.createDraft(localizedRequest);
     }
 
     @PutMapping("/{id}")

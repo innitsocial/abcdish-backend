@@ -5,6 +5,7 @@ public record RecipeDraftRequest(
         String sourceUrl,
         String titleHint,
         String transcript,
-        String creatorName
+        String creatorName,
+        String languageCode
 ) {
 }

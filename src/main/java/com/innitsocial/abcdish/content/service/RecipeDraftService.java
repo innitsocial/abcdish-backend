@@ -55,11 +55,12 @@ public class RecipeDraftService {
         }
         String title = titleFrom(request.titleHint(), sourceUrl, sourceType);
         String creatorName = creatorNameFrom(request);
+        String languageName = languageName(request.languageCode());
         VideoMetadata metadata = metadataFor(sourceType, sourceUrl);
 
         if (aiExtractionEnabled && !clean(openAiApiKey).isBlank()) {
             try {
-                return extractWithOpenAi(request, sourceType, sourceUrl, title, creatorName, metadata);
+                return extractWithOpenAi(request, sourceType, sourceUrl, title, creatorName, languageName, metadata);
             } catch (Exception error) {
                 log.warn("AI recipe extraction failed for sourceType={} sourceUrl={}: {}",
                         sourceType, sourceUrl, error.getMessage());
@@ -78,6 +79,7 @@ public class RecipeDraftService {
             String sourceUrl,
             String fallbackTitle,
             String creatorName,
+            String languageName,
             VideoMetadata metadata
     ) throws IOException, InterruptedException {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -91,11 +93,12 @@ public class RecipeDraftService {
                                 produce a conservative draft and make the user verify it.
                                 Do not invent health claims. Keep ingredients and steps practical.
                                 ABCDish uses managed, uploaded videos only. Do not rely on external video platforms.
+                                Return all user-facing recipe text in the requested language.
                                 """
                 ),
                 Map.of(
                         "role", "user",
-                        "content", extractionPrompt(request, sourceType, sourceUrl, fallbackTitle, creatorName, metadata)
+                        "content", extractionPrompt(request, sourceType, sourceUrl, fallbackTitle, creatorName, languageName, metadata)
                 )
         ));
         body.put("text", Map.of("format", structuredOutputFormat()));
@@ -148,9 +151,11 @@ public class RecipeDraftService {
             String sourceUrl,
             String fallbackTitle,
             String creatorName,
+            String languageName,
             VideoMetadata metadata
     ) {
         return """
+                Requested output language: %s
                 Source type: %s
                 Source URL: %s
                 Creator/user name: %s
@@ -162,11 +167,15 @@ public class RecipeDraftService {
                 %s
 
                 Create a recipe draft for the upload form.
+                Write title, description, categories, ingredients, steps, promoTrailerTitle,
+                and promoTrailerSubtitle in the requested output language.
+                Keep enum values exactly in English: trailerType, complexity, affordability.
                 If source type is OWN_VIDEO, set trailerType to VIDEO when a real trailer clip still
                 needs to be uploaded or generated. Do not claim a trailer has been generated unless
                 trailerUrl is present in the source notes.
                 """
                 .formatted(
+                        languageName,
                         sourceType,
                         sourceUrl,
                         creatorName,
@@ -315,6 +324,58 @@ public class RecipeDraftService {
 
     private String sourceLabel(String sourceType) {
         return "the uploaded video";
+    }
+
+    private String languageName(String languageCode) {
+        return switch (clean(languageCode).toLowerCase()) {
+            case "am" -> "Amharic";
+            case "ar" -> "Arabic";
+            case "bn" -> "Bengali";
+            case "cs" -> "Czech";
+            case "da" -> "Danish";
+            case "de" -> "German";
+            case "el" -> "Greek";
+            case "es" -> "Spanish";
+            case "fa" -> "Persian";
+            case "fi" -> "Finnish";
+            case "fr" -> "French";
+            case "gu" -> "Gujarati";
+            case "ha" -> "Hausa";
+            case "he" -> "Hebrew";
+            case "hi" -> "Hindi";
+            case "id" -> "Indonesian";
+            case "it" -> "Italian";
+            case "ja" -> "Japanese";
+            case "jv" -> "Javanese";
+            case "kn" -> "Kannada";
+            case "ko" -> "Korean";
+            case "ml" -> "Malayalam";
+            case "mr" -> "Marathi";
+            case "ms" -> "Malay";
+            case "my" -> "Burmese";
+            case "nl" -> "Dutch";
+            case "no" -> "Norwegian";
+            case "or" -> "Odia";
+            case "pa" -> "Punjabi";
+            case "pl" -> "Polish";
+            case "pt" -> "Portuguese";
+            case "ro" -> "Romanian";
+            case "ru" -> "Russian";
+            case "sv" -> "Swedish";
+            case "sw" -> "Swahili";
+            case "ta" -> "Tamil";
+            case "te" -> "Telugu";
+            case "th" -> "Thai";
+            case "tl" -> "Filipino";
+            case "tr" -> "Turkish";
+            case "uk" -> "Ukrainian";
+            case "ur" -> "Urdu";
+            case "vi" -> "Vietnamese";
+            case "yo" -> "Yoruba";
+            case "zh" -> "Chinese";
+            case "zu" -> "Zulu";
+            default -> "English";
+        };
     }
 
     private String cleanOrDefault(String value, String fallback) {
