@@ -3,6 +3,7 @@ package com.innitsocial.abcdish.feed.service;
 import com.innitsocial.abcdish.common.security.SecurityUtils;
 import com.innitsocial.abcdish.content.entity.Meal;
 import com.innitsocial.abcdish.content.repository.MealRepository;
+import com.innitsocial.abcdish.content.service.MealTranslationService;
 import com.innitsocial.abcdish.contest.entity.ContestEntry;
 import com.innitsocial.abcdish.contest.repository.ContestEntryLikeRepository;
 import com.innitsocial.abcdish.contest.repository.ContestEntryRepository;
@@ -33,19 +34,20 @@ public class FeedService {
     private final CreatorFollowRepository creatorFollowRepository;
     private final ContestEntryRepository contestEntryRepository;
     private final ContestEntryLikeRepository contestEntryLikeRepository;
+    private final MealTranslationService mealTranslationService;
 
     @Value("${app.contests.acceptance-like-threshold:500}")
     private long acceptanceLikeThreshold;
 
     @Transactional(readOnly = true)
-    public List<FeedItemResponse> getHomeFeed() {
+    public List<FeedItemResponse> getHomeFeed(String languageCode) {
         Optional<Long> currentUserId = SecurityUtils.currentUserIdOptional();
 
         List<FeedItemResponse> items = new ArrayList<>();
 
         items.addAll(mealRepository.findByModerationStatus(ModerationStatus.APPROVED)
                 .stream()
-                .map(meal -> toFeedItem(meal, currentUserId))
+                .map(meal -> toFeedItem(meal, currentUserId, languageCode))
                 .toList());
 
         items.addAll(contestEntryRepository
@@ -57,7 +59,7 @@ public class FeedService {
         return items;
     }
 
-    private FeedItemResponse toFeedItem(Meal meal, Optional<Long> currentUserId) {
+    private FeedItemResponse toFeedItem(Meal meal, Optional<Long> currentUserId, String languageCode) {
         Long mealId = meal.getId();
         String creatorKey = FeedItemResponse.creatorKey(meal);
 
@@ -71,6 +73,7 @@ public class FeedService {
 
         return FeedItemResponse.fromMeal(
                 meal,
+                mealTranslationService.translationFor(meal, languageCode),
                 mealLikeRepository.countByMealId(mealId),
                 mealCommentRepository.countByMealId(mealId),
                 mealShareRepository.countByMealId(mealId),

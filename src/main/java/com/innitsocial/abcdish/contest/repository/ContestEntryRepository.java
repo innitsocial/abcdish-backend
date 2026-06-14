@@ -14,6 +14,8 @@ public interface ContestEntryRepository extends JpaRepository<ContestEntry, Long
 
     List<ContestEntry> findByContestIdAndModerationStatus(Long contestId, ModerationStatus moderationStatus);
 
+    List<ContestEntry> findByContestIdAndEligibleForVotingTrueOrderByVotesDesc(Long contestId);
+
     List<ContestEntry> findByUserIdAndModerationStatusOrderByCreatedAtDesc(
             Long userId,
             ModerationStatus moderationStatus
@@ -24,9 +26,9 @@ public interface ContestEntryRepository extends JpaRepository<ContestEntry, Long
             from ContestEntry entry
             where entry.contestId = :contestId
             and entry.moderationStatus = :moderationStatus
+            and entry.eligibleForVoting = true
             and (
-                entry.approved = true
-                or exists (
+                exists (
                     select contest.id
                     from Contest contest
                     where contest.id = entry.contestId
@@ -45,7 +47,8 @@ public interface ContestEntryRepository extends JpaRepository<ContestEntry, Long
             select entry
             from ContestEntry entry
             where entry.moderationStatus = :moderationStatus
-            and entry.approved = false
+            and entry.eligibleForVoting = true
+            and entry.competitionStatus <> 'WINNER'
             and exists (
                 select contest.id
                 from Contest contest

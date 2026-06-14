@@ -1,0 +1,8 @@
+ALTER TABLE IF EXISTS abcdish.contest_entries
+ADD COLUMN IF NOT EXISTS sound_free_confirmed BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE IF EXISTS abcdish.contest_entries
+ADD COLUMN IF NOT EXISTS ai_narration_requested BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE IF EXISTS abcdish.contest_entries
+ADD COLUMN IF NOT EXISTS narration_status VARCHAR(255) DEFAULT 'PENDING_REVIEW';

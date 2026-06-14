@@ -1,6 +1,7 @@
 package com.innitsocial.abcdish.feed.dto;
 
 import com.innitsocial.abcdish.content.entity.Meal;
+import com.innitsocial.abcdish.content.entity.MealTranslation;
 import com.innitsocial.abcdish.contest.entity.ContestEntry;
 
 import java.util.List;
@@ -32,7 +33,12 @@ public record FeedItemResponse(
         Long contestId,
         long acceptanceThreshold,
         Long acceptedMealId,
-        boolean reviewUnlocked
+        boolean reviewUnlocked,
+        String competitionCategory,
+        String competitionStatus,
+        Integer finalistRank,
+        boolean londonQualified,
+        Integer prizeAmountGbp
 ) {
     public static FeedItemResponse fromMeal(
             Meal meal,
@@ -42,20 +48,36 @@ public record FeedItemResponse(
             boolean likedByCurrentUser,
             boolean followedByCurrentUser
     ) {
+        return fromMeal(meal, null, likeCount, commentCount, shareCount, likedByCurrentUser, followedByCurrentUser);
+    }
+
+    public static FeedItemResponse fromMeal(
+            Meal meal,
+            MealTranslation translation,
+            long likeCount,
+            long commentCount,
+            long shareCount,
+            boolean likedByCurrentUser,
+            boolean followedByCurrentUser
+    ) {
         String creatorKey = creatorKey(meal);
+        String title = translation == null ? meal.getTitle() : translation.getTitle();
+        String description = translation == null ? meal.getDescription() : translation.getDescription();
+        List<String> ingredients = translation == null ? meal.getIngredients() : translation.getIngredients();
+        List<String> steps = translation == null ? meal.getSteps() : translation.getSteps();
 
         return new FeedItemResponse(
                 meal.getId(),
-                meal.getTitle(),
-                meal.getDescription(),
+                title,
+                description,
                 meal.getImageUrl(),
                 meal.getVideoUrl(),
                 meal.getDuration(),
                 meal.getComplexity(),
                 meal.getAffordability(),
                 meal.getCategories(),
-                meal.getIngredients(),
-                meal.getSteps(),
+                ingredients,
+                steps,
                 meal.isGlutenFree(),
                 meal.isLactoseFree(),
                 meal.isVegan(),
@@ -71,7 +93,12 @@ public record FeedItemResponse(
                 null,
                 0,
                 null,
-                false
+                false,
+                "admin",
+                "OFFICIAL_RECIPE",
+                null,
+                false,
+                null
         );
     }
 
@@ -110,7 +137,12 @@ public record FeedItemResponse(
                 entry.getContestId(),
                 acceptanceThreshold,
                 entry.getAcceptedMealId(),
-                voteCount >= acceptanceThreshold
+                voteCount >= acceptanceThreshold,
+                entry.getCompetitionCategory(),
+                entry.getCompetitionStatus(),
+                entry.getFinalistRank(),
+                entry.isLondonQualified(),
+                entry.getPrizeAmountGbp()
         );
     }
 

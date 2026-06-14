@@ -15,6 +15,14 @@ public record ContestEntryResponse(
         boolean likedByCurrentUser,
         long acceptanceThreshold,
         Long acceptedMealId,
+        boolean soundFreeConfirmed,
+        boolean aiNarrationRequested,
+        String narrationStatus,
+        String competitionCategory,
+        String competitionStatus,
+        Integer finalistRank,
+        boolean londonQualified,
+        Integer prizeAmountGbp,
         String moderationStatus,
         String moderationReason
 ) {
@@ -36,6 +44,14 @@ public record ContestEntryResponse(
                 likedByCurrentUser,
                 acceptanceThreshold,
                 entry.getAcceptedMealId(),
+                entry.isSoundFreeConfirmed(),
+                entry.isAiNarrationRequested(),
+                entry.getNarrationStatus(),
+                entry.getCompetitionCategory(),
+                entry.getCompetitionStatus(),
+                entry.getFinalistRank(),
+                entry.isLondonQualified(),
+                entry.getPrizeAmountGbp(),
                 entry.getModerationStatus() == null ? "PENDING_REVIEW" : entry.getModerationStatus().name(),
                 entry.getModerationReason()
         );

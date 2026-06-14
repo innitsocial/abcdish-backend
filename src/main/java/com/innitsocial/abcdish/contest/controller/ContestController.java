@@ -55,4 +55,9 @@ public class ContestController {
     public ContestEntryResponse acceptEntry(@PathVariable Long entryId) {
         return contestService.acceptEntry(entryId);
     }
+
+    @PostMapping("/entries/{entryId}/winner")
+    public ContestEntryResponse selectWinner(@PathVariable Long entryId) {
+        return contestService.selectWinner(entryId);
+    }
 }

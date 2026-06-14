@@ -39,6 +39,12 @@ public class ContestService {
     @Value("${app.contests.acceptance-like-threshold:500}")
     private long acceptanceLikeThreshold;
 
+    @Value("${app.contests.london-finalist-limit:100}")
+    private int londonFinalistLimit;
+
+    @Value("${app.contests.category-winner-prize-gbp:100000}")
+    private int categoryWinnerPrizeGbp;
+
     @Transactional(readOnly = true)
     public List<ContestResponse> findOpenContests() {
         return contestRepository.findActiveByStatus(ContestStatus.OPEN, LocalDateTime.now())
@@ -50,6 +56,10 @@ public class ContestService {
     public ContestEntryResponse submitEntry(Long userId, Long contestId, ContestEntryRequest request) {
         contestRepository.findById(contestId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
+
+        if (!request.soundFreeConfirmed()) {
+            throw new RuntimeException("Contest videos must be sound-free so ABCDish can add trusted AI narration after review");
+        }
 
         ModerationResult moderation = contentModerationService.moderateFoodPost(List.of(
                 clean(request.title()),
@@ -69,10 +79,16 @@ public class ContestService {
                 .approved(false)
                 .duration(request.duration() == null ? 30 : request.duration())
                 .complexity(blankToDefault(request.complexity(), "simple"))
+                .competitionCategory(blankToDefault(request.competitionCategory(), "main").toLowerCase())
+                .eligibleForVoting(false)
+                .competitionStatus("PENDING_ADMIN_REVIEW")
                 .glutenFree(request.glutenFree())
                 .lactoseFree(request.lactoseFree())
                 .vegan(request.vegan())
                 .vegetarian(request.vegetarian())
+                .soundFreeConfirmed(request.soundFreeConfirmed())
+                .aiNarrationRequested(request.aiNarrationRequested())
+                .narrationStatus(request.aiNarrationRequested() ? "PENDING_REVIEW" : "NOT_REQUESTED")
                 .moderationStatus(moderation.status())
                 .moderationReason(moderation.reason())
                 .votes(0)
@@ -129,8 +145,40 @@ public class ContestService {
             throw new RuntimeException("Contest entry must pass moderation before admin acceptance");
         }
 
+        entry.setApproved(true);
+        entry.setEligibleForVoting(true);
+        entry.setCompetitionStatus("VOTING");
+        refreshFinalists(entry.getContestId());
+
+        return toResponse(contestEntryRepository.save(entry), Optional.empty());
+    }
+
+    public ContestEntryResponse selectWinner(Long entryId) {
+        ContestEntry entry = contestEntryRepository.findById(entryId)
+                .orElseThrow(() -> new RuntimeException("Contest entry not found"));
+
+        if (!entry.isEligibleForVoting()) {
+            throw new RuntimeException("Contest entry must be accepted for voting before winner selection");
+        }
+
+        boolean existingWinnerInCategory = contestEntryRepository
+                .findByContestIdAndEligibleForVotingTrueOrderByVotesDesc(entry.getContestId())
+                .stream()
+                .anyMatch(other -> other.getId() != null
+                        && !other.getId().equals(entry.getId())
+                        && "WINNER".equals(other.getCompetitionStatus())
+                        && clean(other.getCompetitionCategory()).equals(clean(entry.getCompetitionCategory())));
+        if (existingWinnerInCategory) {
+            throw new RuntimeException("This category already has a winner");
+        }
+
         Meal meal = promoteToMeal(entry);
         entry.setApproved(true);
+        entry.setEligibleForVoting(true);
+        entry.setCompetitionStatus("WINNER");
+        entry.setLondonQualified(true);
+        entry.setPrizeAmountGbp(categoryWinnerPrizeGbp);
+        entry.setWinnerSelectedAt(LocalDateTime.now());
         entry.setAcceptedMealId(meal.getId());
         entry.setAcceptedAt(LocalDateTime.now());
 
@@ -155,8 +203,23 @@ public class ContestService {
     private ContestEntryResponse refreshVotes(ContestEntry entry, Optional<Long> currentUserId) {
         long voteCount = contestEntryLikeRepository.countByEntryId(entry.getId());
         entry.setVotes(voteCount);
+        refreshFinalists(entry.getContestId());
 
         return toResponse(contestEntryRepository.save(entry), currentUserId);
+    }
+
+    private void refreshFinalists(Long contestId) {
+        List<ContestEntry> entries = contestEntryRepository.findByContestIdAndEligibleForVotingTrueOrderByVotesDesc(contestId);
+        for (int index = 0; index < entries.size(); index++) {
+            ContestEntry entry = entries.get(index);
+            boolean qualified = index < londonFinalistLimit;
+            entry.setFinalistRank(qualified ? index + 1 : null);
+            entry.setLondonQualified(qualified || "WINNER".equals(entry.getCompetitionStatus()));
+            if (!"WINNER".equals(entry.getCompetitionStatus())) {
+                entry.setCompetitionStatus(qualified ? "LONDON_FINALIST" : "VOTING");
+            }
+        }
+        contestEntryRepository.saveAll(entries);
     }
 
     private Meal promoteToMeal(ContestEntry entry) {

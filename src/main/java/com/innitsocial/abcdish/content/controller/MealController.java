@@ -4,6 +4,7 @@ import com.innitsocial.abcdish.content.dto.MealRequestDto;
 import com.innitsocial.abcdish.content.dto.MealResponseDto;
 import com.innitsocial.abcdish.content.dto.RecipeDraftRequest;
 import com.innitsocial.abcdish.content.dto.RecipeDraftResponse;
+import com.innitsocial.abcdish.content.service.MealTranslationService;
 import com.innitsocial.abcdish.content.service.MealService;
 import com.innitsocial.abcdish.content.service.RecipeDraftService;
 import jakarta.validation.Valid;
@@ -19,6 +20,7 @@ public class MealController {
 
     private final MealService mealService;
     private final RecipeDraftService recipeDraftService;
+    private final MealTranslationService mealTranslationService;
 
     @DeleteMapping("/{id}")
     public void deleteMeal(@PathVariable Long id) {
@@ -26,10 +28,15 @@ public class MealController {
     }
 
     @GetMapping
-    public List<MealResponseDto> getAllMeals() {
+    public List<MealResponseDto> getAllMeals(
+            @RequestHeader(value = "X-ABCDish-Language", required = false) String languageCode
+    ) {
         return mealService.findApproved()
                 .stream()
-                .map(MealResponseDto::fromEntity)
+                .map(meal -> MealResponseDto.fromEntity(
+                        meal,
+                        mealTranslationService.translationFor(meal, languageCode)
+                ))
                 .toList();
     }
 
@@ -42,8 +49,12 @@ public class MealController {
     }
 
     @GetMapping("/{id}")
-    public MealResponseDto getMealById(@PathVariable Long id) {
-        return MealResponseDto.fromEntity(mealService.findById(id));
+    public MealResponseDto getMealById(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-ABCDish-Language", required = false) String languageCode
+    ) {
+        var meal = mealService.findById(id);
+        return MealResponseDto.fromEntity(meal, mealTranslationService.translationFor(meal, languageCode));
     }
 
     @PostMapping

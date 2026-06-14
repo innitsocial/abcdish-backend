@@ -36,6 +36,7 @@ public class DataSeeder implements CommandLineRunner {
         repairModerationColumns();
         repairStoryEngagementTables();
         repairContestAcceptanceTables();
+        repairMealTranslationTables();
 
         if (categoryRepository.count() == 0) {
 
@@ -382,6 +383,46 @@ public class DataSeeder implements CommandLineRunner {
                     ADD COLUMN IF NOT EXISTS vegetarian BOOLEAN DEFAULT FALSE
                     """);
             jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS sound_free_confirmed BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS ai_narration_requested BOOLEAN DEFAULT TRUE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS narration_status VARCHAR(255) DEFAULT 'PENDING_REVIEW'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS competition_category VARCHAR(255) DEFAULT 'main'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS eligible_for_voting BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS competition_status VARCHAR(255) DEFAULT 'PENDING_ADMIN_REVIEW'
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS finalist_rank INTEGER
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS london_qualified BOOLEAN DEFAULT FALSE
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS prize_amount_gbp INTEGER
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.contest_entries
+                    ADD COLUMN IF NOT EXISTS winner_selected_at TIMESTAMP
+                    """);
+            jdbcTemplate.execute("""
                     CREATE TABLE IF NOT EXISTS abcdish.contest_entry_likes (
                         id BIGSERIAL PRIMARY KEY,
                         entry_id BIGINT NOT NULL,
@@ -400,6 +441,39 @@ public class DataSeeder implements CommandLineRunner {
                     """);
         } catch (DataAccessException error) {
             log.warn("Could not repair contest acceptance tables", error);
+        }
+    }
+
+    private void repairMealTranslationTables() {
+        try {
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.meal_translations (
+                        id BIGSERIAL PRIMARY KEY,
+                        meal_id BIGINT NOT NULL,
+                        language_code VARCHAR(16) NOT NULL,
+                        title VARCHAR(255) NOT NULL,
+                        description VARCHAR(2000),
+                        CONSTRAINT uk_meal_translation_language UNIQUE (meal_id, language_code)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.meal_translation_ingredients (
+                        translation_id BIGINT NOT NULL,
+                        ingredient VARCHAR(255)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.meal_translation_steps (
+                        translation_id BIGINT NOT NULL,
+                        step VARCHAR(255)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_meal_translations_meal_language
+                    ON abcdish.meal_translations(meal_id, language_code)
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair meal translation tables", error);
         }
     }
 }

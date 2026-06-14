@@ -11,12 +11,15 @@ public record ContestEntryRequest(
         String thumbnailUrl,
         Integer duration,
         String complexity,
+        String competitionCategory,
         List<String> categories,
         List<String> ingredients,
         List<String> steps,
         boolean glutenFree,
         boolean lactoseFree,
         boolean vegan,
-        boolean vegetarian
+        boolean vegetarian,
+        boolean soundFreeConfirmed,
+        boolean aiNarrationRequested
 ) {
 }

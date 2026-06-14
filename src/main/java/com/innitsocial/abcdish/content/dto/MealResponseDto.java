@@ -1,6 +1,7 @@
 package com.innitsocial.abcdish.content.dto;
 
 import com.innitsocial.abcdish.content.entity.Meal;
+import com.innitsocial.abcdish.content.entity.MealTranslation;
 
 import java.util.List;
 
@@ -29,11 +30,20 @@ public record MealResponseDto(
         String moderationReason
 ) {
     public static MealResponseDto fromEntity(Meal meal) {
+        return fromEntity(meal, null);
+    }
+
+    public static MealResponseDto fromEntity(Meal meal, MealTranslation translation) {
+        String title = translation == null ? meal.getTitle() : translation.getTitle();
+        String description = translation == null ? meal.getDescription() : translation.getDescription();
+        List<String> ingredients = translation == null ? meal.getIngredients() : translation.getIngredients();
+        List<String> steps = translation == null ? meal.getSteps() : translation.getSteps();
+
         return new MealResponseDto(
                 meal.getId(),
                 recipeCodeFor(meal),
-                meal.getTitle(),
-                meal.getDescription(),
+                title,
+                description,
                 meal.getImageUrl(),
                 meal.getVideoUrl(),
                 meal.getTrailerUrl(),
@@ -44,8 +54,8 @@ public record MealResponseDto(
                 meal.getComplexity(),
                 meal.getAffordability(),
                 meal.getCategories(),
-                meal.getIngredients(),
-                meal.getSteps(),
+                ingredients,
+                steps,
                 meal.isGlutenFree(),
                 meal.isLactoseFree(),
                 meal.isVegan(),
