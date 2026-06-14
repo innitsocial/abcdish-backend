@@ -12,12 +12,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -37,6 +42,8 @@ public class DataSeeder implements CommandLineRunner {
         repairStoryEngagementTables();
         repairContestAcceptanceTables();
         repairMealTranslationTables();
+        repairRecipeIdeaTables();
+        importRecipeIdeas();
 
         if (categoryRepository.count() == 0) {
 
@@ -475,5 +482,325 @@ public class DataSeeder implements CommandLineRunner {
         } catch (DataAccessException error) {
             log.warn("Could not repair meal translation tables", error);
         }
+    }
+
+    private void repairRecipeIdeaTables() {
+        try {
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS abcdish.recipe_ideas (
+                        id BIGSERIAL PRIMARY KEY,
+                        section VARCHAR(255) NOT NULL,
+                        filter_category VARCHAR(255) NOT NULL,
+                        recipe_name VARCHAR(255) NOT NULL,
+                        region_cuisine VARCHAR(255),
+                        key_ingredients VARCHAR(1000),
+                        launch_notes VARCHAR(1000),
+                        suggested_tags VARCHAR(1000),
+                        thumbnail_url VARCHAR(1000),
+                        image_prompt TEXT,
+                        dummy_video_url VARCHAR(1000),
+                        dummy_trailer_url VARCHAR(1000),
+                        caption_text TEXT,
+                        ai_narration_script TEXT,
+                        background_music_style VARCHAR(255),
+                        color_palette VARCHAR(255),
+                        video_generation_prompt TEXT,
+                        video_status VARCHAR(255) DEFAULT 'READY_FOR_AI_GENERATION',
+                        source VARCHAR(255) DEFAULT 'ABCDish seed CSV',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uk_recipe_ideas_section_filter_recipe UNIQUE (section, filter_category, recipe_name)
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS image_prompt TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS dummy_video_url VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS dummy_trailer_url VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS caption_text TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS ai_narration_script TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS background_music_style VARCHAR(255)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS color_palette VARCHAR(255)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS video_generation_prompt TEXT
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.recipe_ideas
+                    ADD COLUMN IF NOT EXISTS video_status VARCHAR(255) DEFAULT 'READY_FOR_AI_GENERATION'
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_recipe_ideas_filter_category
+                    ON abcdish.recipe_ideas(filter_category)
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_recipe_ideas_section
+                    ON abcdish.recipe_ideas(section)
+                    """);
+        } catch (DataAccessException error) {
+            log.warn("Could not repair recipe idea tables", error);
+        }
+    }
+
+    private void importRecipeIdeas() {
+        try {
+            ClassPathResource resource = new ClassPathResource("data/abcdish_recipe_ideas.csv");
+            if (!resource.exists()) {
+                log.warn("Recipe ideas CSV not found on classpath");
+                return;
+            }
+
+            jdbcTemplate.update("DELETE FROM abcdish.recipe_ideas WHERE source = ?", "ABCDish seed CSV");
+
+            int imported = 0;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    resource.getInputStream(),
+                    StandardCharsets.UTF_8
+            ))) {
+                String line;
+                boolean header = true;
+                while ((line = reader.readLine()) != null) {
+                    if (header) {
+                        header = false;
+                        continue;
+                    }
+
+                    List<String> row = parseCsvLine(line);
+                    if (row.size() < 7 || clean(row.get(2)).isBlank()) {
+                        continue;
+                    }
+
+                    String section = clean(row.get(0));
+                    String filterCategory = clean(row.get(1));
+                    String recipeName = clean(row.get(2));
+                    String regionCuisine = clean(row.get(3));
+                    String keyIngredients = clean(row.get(4));
+                    String launchNotes = clean(row.get(5));
+                    String suggestedTags = clean(row.get(6));
+                    String slug = slugify(recipeName);
+
+                    jdbcTemplate.update("""
+                                    INSERT INTO abcdish.recipe_ideas (
+                                        section,
+                                        filter_category,
+                                        recipe_name,
+                                        region_cuisine,
+                                        key_ingredients,
+                                        launch_notes,
+                                        suggested_tags,
+                                        thumbnail_url,
+                                        image_prompt,
+                                        dummy_video_url,
+                                        dummy_trailer_url,
+                                        caption_text,
+                                        ai_narration_script,
+                                        background_music_style,
+                                        color_palette,
+                                        video_generation_prompt,
+                                        video_status,
+                                        source
+                                    )
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    ON CONFLICT (section, filter_category, recipe_name) DO UPDATE SET
+                                        region_cuisine = EXCLUDED.region_cuisine,
+                                        key_ingredients = EXCLUDED.key_ingredients,
+                                        launch_notes = EXCLUDED.launch_notes,
+                                        suggested_tags = EXCLUDED.suggested_tags,
+                                        thumbnail_url = EXCLUDED.thumbnail_url,
+                                        image_prompt = EXCLUDED.image_prompt,
+                                        dummy_video_url = EXCLUDED.dummy_video_url,
+                                        dummy_trailer_url = EXCLUDED.dummy_trailer_url,
+                                        caption_text = EXCLUDED.caption_text,
+                                        ai_narration_script = EXCLUDED.ai_narration_script,
+                                        background_music_style = EXCLUDED.background_music_style,
+                                        color_palette = EXCLUDED.color_palette,
+                                        video_generation_prompt = EXCLUDED.video_generation_prompt,
+                                        video_status = EXCLUDED.video_status,
+                                        source = EXCLUDED.source
+                                    """,
+                            section,
+                            filterCategory,
+                            recipeName,
+                            regionCuisine,
+                            keyIngredients,
+                            launchNotes,
+                            suggestedTags,
+                            "https://picsum.photos/seed/abcdish-" + slug + "/1200/900",
+                            imagePrompt(recipeName, regionCuisine, keyIngredients, filterCategory),
+                            "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+                            "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+                            captionText(recipeName, regionCuisine, filterCategory),
+                            aiNarrationScript(recipeName, regionCuisine, keyIngredients),
+                            backgroundMusicStyle(filterCategory, section),
+                            colorPalette(filterCategory, section),
+                            videoGenerationPrompt(section, filterCategory, recipeName, regionCuisine, keyIngredients),
+                            "READY_FOR_AI_GENERATION",
+                            "ABCDish seed CSV"
+                    );
+                    imported++;
+                }
+            }
+
+            log.info("ABCDish recipe ideas seed processed rows={}", imported);
+        } catch (Exception error) {
+            log.warn("Could not import recipe ideas CSV", error);
+        }
+    }
+
+    private List<String> parseCsvLine(String line) {
+        List<String> values = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean quoted = false;
+
+        for (int index = 0; index < line.length(); index++) {
+            char value = line.charAt(index);
+            if (value == '"') {
+                if (quoted && index + 1 < line.length() && line.charAt(index + 1) == '"') {
+                    current.append('"');
+                    index++;
+                } else {
+                    quoted = !quoted;
+                }
+            } else if (value == ',' && !quoted) {
+                values.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(value);
+            }
+        }
+
+        values.add(current.toString());
+        return values;
+    }
+
+    private String imagePrompt(
+            String recipeName,
+            String regionCuisine,
+            String keyIngredients,
+            String filterCategory
+    ) {
+        return """
+                Create a bright, trustworthy food thumbnail for ABCDish.
+                Dish: %s.
+                Cuisine/region: %s.
+                Key ingredients: %s.
+                Filter/category: %s.
+                Show the finished dish clearly on a clean plate or bowl, natural food colors,
+                appetizing but realistic, no people, no logos, no text, no clutter.
+                """
+                .formatted(recipeName, regionCuisine, keyIngredients, filterCategory)
+                .trim();
+    }
+
+    private String captionText(String recipeName, String regionCuisine, String filterCategory) {
+        return "ABCDish " + filterCategory + ": " + recipeName
+                + (regionCuisine.isBlank() ? "" : " from " + regionCuisine)
+                + ". Clean recipe video, clear captions, AI narration ready.";
+    }
+
+    private String aiNarrationScript(String recipeName, String regionCuisine, String keyIngredients) {
+        return """
+                Today on ABCDish, we are making %s%s.
+                Keep the video focused on the recipe: show ingredients first, then each cooking step clearly.
+                Main ingredients: %s.
+                Narration should be calm, friendly, accurate, and easy to translate into every supported language.
+                Mention timing, texture, heat level, and final serving cues without adding unverified health claims.
+                """
+                .formatted(
+                        recipeName,
+                        regionCuisine.isBlank() ? "" : " from " + regionCuisine,
+                        keyIngredients
+                )
+                .trim();
+    }
+
+    private String backgroundMusicStyle(String filterCategory, String section) {
+        String cleaned = (filterCategory + " " + section).toLowerCase();
+        if (cleaned.contains("dessert") || cleaned.contains("sweet")) {
+            return "light warm acoustic background, low volume, gentle tempo";
+        }
+        if (cleaned.contains("drink")) {
+            return "light fresh lounge background, low volume, relaxed tempo";
+        }
+        if (cleaned.contains("spicy") || cleaned.contains("street")) {
+            return "light upbeat world percussion, low volume, energetic but not distracting";
+        }
+        return "light modern kitchen background music, low volume, warm and trustworthy";
+    }
+
+    private String colorPalette(String filterCategory, String section) {
+        String cleaned = (filterCategory + " " + section).toLowerCase();
+        if (cleaned.contains("dessert") || cleaned.contains("sweet")) {
+            return "berry, cream, cocoa, warm gold";
+        }
+        if (cleaned.contains("drink")) {
+            return "mint, citrus, ice blue, clean white";
+        }
+        if (cleaned.contains("vegan") || cleaned.contains("healthy")) {
+            return "fresh green, tomato red, lemon, soft white";
+        }
+        if (cleaned.contains("spicy") || cleaned.contains("street")) {
+            return "chilli red, turmeric, charcoal, lime";
+        }
+        return "fresh green, warm tomato, cream, charcoal";
+    }
+
+    private String videoGenerationPrompt(
+            String section,
+            String filterCategory,
+            String recipeName,
+            String regionCuisine,
+            String keyIngredients
+    ) {
+        return """
+                Create an ABCDish production-ready cooking video for "%s".
+                Section: %s. Filter/category: %s. Cuisine/region: %s.
+                Key ingredients: %s.
+
+                Requirements:
+                - Recipe-focused only: ingredients, method, texture, timing, final dish.
+                - No face-led storytelling, no celebrity framing, no copyrighted logos.
+                - Produce a silent base video suitable for multilingual AI narration.
+                - Add clear captions/subtitles area with high contrast.
+                - Add light background music only under narration.
+                - Include a 30-second trailer plus a full recipe video.
+                - Use appetizing realistic food visuals, clean kitchen lighting, trustworthy style.
+                - Output should support English plus all ABCDish app languages.
+                """
+                .formatted(recipeName, section, filterCategory, regionCuisine, keyIngredients)
+                .trim();
+    }
+
+    private String slugify(String value) {
+        String slug = clean(value).toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        return slug.isBlank() ? "recipe" : slug;
+    }
+
+    private String clean(String value) {
+        return value == null ? "" : value.trim();
     }
 }
