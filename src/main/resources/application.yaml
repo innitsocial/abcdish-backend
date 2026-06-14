@@ -29,6 +29,8 @@ app:
     recipe-ideas:
       reset: ${APP_SEED_RECIPE_IDEAS_RESET:false}
       publish-ready-to-feed: ${APP_SEED_RECIPE_IDEAS_PUBLISH_READY_TO_FEED:true}
+      publish-all-to-feed: ${APP_SEED_RECIPE_IDEAS_PUBLISH_ALL_TO_FEED:true}
+      reset-categories: ${APP_SEED_RECIPE_IDEAS_RESET_CATEGORIES:false}
     sample-feed:
       enabled: ${APP_SEED_SAMPLE_FEED_ENABLED:false}
       reset: ${APP_SEED_SAMPLE_FEED_RESET:false}

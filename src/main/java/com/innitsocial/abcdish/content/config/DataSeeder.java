@@ -44,6 +44,12 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.seed.recipe-ideas.publish-ready-to-feed:true}")
     private boolean publishReadyRecipeIdeasToFeed;
 
+    @Value("${app.seed.recipe-ideas.publish-all-to-feed:true}")
+    private boolean publishAllRecipeIdeasToFeed;
+
+    @Value("${app.seed.recipe-ideas.reset-categories:false}")
+    private boolean resetRecipeIdeaCategories;
+
     @Value("${app.seed.sample-feed.enabled:false}")
     private boolean sampleFeedEnabled;
 
@@ -59,6 +65,7 @@ public class DataSeeder implements CommandLineRunner {
         repairMealTranslationTables();
         repairRecipeIdeaTables();
         importRecipeIdeas();
+        seedRecipeIdeaCategories();
         if (resetSampleFeed) {
             deleteSampleFeedMeals();
         }
@@ -238,6 +245,62 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    private void seedRecipeIdeaCategories() {
+        try {
+            if (resetRecipeIdeaCategories) {
+                jdbcTemplate.execute("""
+                        DELETE FROM abcdish.categories
+                        WHERE id LIKE 'ri-section-%'
+                           OR id LIKE 'ri-filter-%'
+                           OR id IN ('c1', 'c2', 'c3', 'c4', 'c5')
+                        """);
+                log.info("Reset ABCDish recipe idea categories");
+            }
+
+            int sections = jdbcTemplate.update("""
+                    INSERT INTO abcdish.categories (id, title, color_code)
+                    SELECT DISTINCT
+                        'ri-section-' || LOWER(REGEXP_REPLACE(section, '[^a-zA-Z0-9]+', '-', 'g')),
+                        section,
+                        '#2E7D32'
+                    FROM abcdish.recipe_ideas
+                    WHERE COALESCE(NULLIF(section, ''), '') <> ''
+                    ON CONFLICT (id) DO UPDATE SET
+                        title = EXCLUDED.title,
+                        color_code = EXCLUDED.color_code
+                    """);
+
+            int filters = jdbcTemplate.update("""
+                    INSERT INTO abcdish.categories (id, title, color_code)
+                    SELECT DISTINCT
+                        'ri-filter-' || LOWER(REGEXP_REPLACE(filter_category, '[^a-zA-Z0-9]+', '-', 'g')),
+                        filter_category,
+                        CASE
+                            WHEN section = 'Meal Moment' THEN '#F2A65A'
+                            WHEN section = 'Cuisine' THEN '#D94F30'
+                            WHEN section = 'Diet / Protein' THEN '#2E7D32'
+                            WHEN section = 'Allergy / Intolerance' THEN '#00897B'
+                            WHEN section = 'Cooking Time' THEN '#6A8DFF'
+                            WHEN section = 'Difficulty' THEN '#8E5CF7'
+                            WHEN section = 'Cooking Method' THEN '#795548'
+                            WHEN section = 'Taste / Style' THEN '#C2185B'
+                            WHEN section = 'Budget' THEN '#607D8B'
+                            WHEN section = 'Health / Goal' THEN '#43A047'
+                            ELSE '#2E7D32'
+                        END
+                    FROM abcdish.recipe_ideas
+                    WHERE COALESCE(NULLIF(filter_category, ''), '') <> ''
+                    ON CONFLICT (id) DO UPDATE SET
+                        title = EXCLUDED.title,
+                        color_code = EXCLUDED.color_code
+                    """);
+
+            log.info("Seeded ABCDish recipe idea categories sections={} filters={}", sections, filters);
+        } catch (DataAccessException error) {
+            log.warn("Could not seed ABCDish recipe idea categories", error);
+        }
+    }
+
     public void publishReadyRecipeIdeasToFeed() {
         try {
             int inserted = jdbcTemplate.update("""
@@ -264,10 +327,13 @@ public class DataSeeder implements CommandLineRunner {
                     SELECT
                         'RI' || id,
                         recipe_name,
-                        COALESCE(NULLIF(caption_text, ''), launch_notes, 'ABCDish AI-ready recipe.'),
+                        COALESCE(
+                            NULLIF(caption_text, ''),
+                            recipe_name || ' - ' || COALESCE(NULLIF(region_cuisine, ''), 'Global') || '. ' || COALESCE(NULLIF(launch_notes, ''), 'ABCDish recipe from the launch catalogue.')
+                        ),
                         thumbnail_url,
-                        dummy_video_url,
-                        dummy_trailer_url,
+                        COALESCE(NULLIF(dummy_video_url, ''), 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'),
+                        COALESCE(NULLIF(dummy_trailer_url, ''), 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'),
                         'VIDEO',
                         recipe_name,
                         COALESCE(NULLIF(caption_text, ''), 'Any Buddy Can Dish'),
@@ -283,21 +349,57 @@ public class DataSeeder implements CommandLineRunner {
                         LOWER(filter_category) LIKE '%vegan%',
                         LOWER(filter_category) LIKE '%vegetarian%' OR LOWER(filter_category) LIKE '%vegan%',
                         'APPROVED',
-                        'Generated from ABCDish recipe idea backlog'
+                        'Seeded from ABCDish recipe Excel backlog'
                     FROM abcdish.recipe_ideas
-                    WHERE video_status IN ('DUMMY_VIDEO_READY', 'VIDEO_GENERATION_PENDING', 'GENERATED', 'APPROVED_FOR_FEED')
-                      AND COALESCE(NULLIF(thumbnail_url, ''), '') <> ''
+                    WHERE (
+                        ? = true
+                        OR video_status IN ('DUMMY_VIDEO_READY', 'VIDEO_GENERATION_PENDING', 'GENERATED', 'APPROVED_FOR_FEED')
+                    )
+                      AND COALESCE(NULLIF(recipe_name, ''), '') <> ''
                       AND NOT EXISTS (
                           SELECT 1
                           FROM abcdish.meals meal
                           WHERE meal.recipe_code = 'RI' || abcdish.recipe_ideas.id
                       )
-                    """);
-            if (inserted > 0) {
-                log.info("Published ABCDish recipe ideas to feed meals count={}", inserted);
-                backfillMealDetailsForRecipeIdeas();
-                backfillRecipeCodes();
-            }
+                    """, publishAllRecipeIdeasToFeed);
+
+            int updated = jdbcTemplate.update("""
+                    UPDATE abcdish.meals meal
+                    SET title = idea.recipe_name,
+                        description = COALESCE(
+                            NULLIF(idea.caption_text, ''),
+                            idea.recipe_name || ' - ' || COALESCE(NULLIF(idea.region_cuisine, ''), 'Global') || '. ' || COALESCE(NULLIF(idea.launch_notes, ''), 'ABCDish recipe from the launch catalogue.')
+                        ),
+                        image_url = idea.thumbnail_url,
+                        video_url = COALESCE(NULLIF(idea.dummy_video_url, ''), 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'),
+                        trailer_url = COALESCE(NULLIF(idea.dummy_trailer_url, ''), 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'),
+                        trailer_type = 'VIDEO',
+                        promo_trailer_title = idea.recipe_name,
+                        promo_trailer_subtitle = COALESCE(NULLIF(idea.caption_text, ''), 'Any Buddy Can Dish'),
+                        duration = 30,
+                        complexity = CASE
+                            WHEN LOWER(idea.filter_category) LIKE '%hard%' OR LOWER(idea.filter_category) LIKE '%difficult%' THEN 'hard'
+                            WHEN LOWER(idea.filter_category) LIKE '%challenging%' THEN 'challenging'
+                            ELSE 'simple'
+                        END,
+                        affordability = 'affordable',
+                        gluten_free = LOWER(idea.filter_category) LIKE '%gluten%',
+                        lactose_free = LOWER(idea.filter_category) LIKE '%lactose%',
+                        vegan = LOWER(idea.filter_category) LIKE '%vegan%',
+                        vegetarian = LOWER(idea.filter_category) LIKE '%vegetarian%' OR LOWER(idea.filter_category) LIKE '%vegan%',
+                        moderation_status = 'APPROVED',
+                        moderation_reason = 'Seeded from ABCDish recipe Excel backlog'
+                    FROM abcdish.recipe_ideas idea
+                    WHERE meal.recipe_code = 'RI' || idea.id
+                      AND (
+                          ? = true
+                          OR idea.video_status IN ('DUMMY_VIDEO_READY', 'VIDEO_GENERATION_PENDING', 'GENERATED', 'APPROVED_FOR_FEED')
+                      )
+                    """, publishAllRecipeIdeasToFeed);
+
+            log.info("Published ABCDish recipe ideas to feed meals inserted={} updated={}", inserted, updated);
+            backfillMealDetailsForRecipeIdeas();
+            backfillRecipeCodes();
         } catch (DataAccessException error) {
             log.warn("Could not publish ready ABCDish recipe ideas to feed", error);
         }
@@ -305,39 +407,83 @@ public class DataSeeder implements CommandLineRunner {
 
     private void backfillMealDetailsForRecipeIdeas() {
         jdbcTemplate.execute("""
+                DELETE FROM abcdish.meal_categories
+                WHERE meal_id IN (
+                    SELECT id
+                    FROM abcdish.meals
+                    WHERE recipe_code LIKE 'RI%'
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                DELETE FROM abcdish.meal_ingredients
+                WHERE meal_id IN (
+                    SELECT id
+                    FROM abcdish.meals
+                    WHERE recipe_code LIKE 'RI%'
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                DELETE FROM abcdish.meal_steps
+                WHERE meal_id IN (
+                    SELECT id
+                    FROM abcdish.meals
+                    WHERE recipe_code LIKE 'RI%'
+                )
+                """);
+
+        jdbcTemplate.execute("""
                 INSERT INTO abcdish.meal_categories (meal_id, category_id)
-                SELECT meal.id, 'cooking'
+                SELECT meal.id, 'ri-section-' || LOWER(REGEXP_REPLACE(idea.section, '[^a-zA-Z0-9]+', '-', 'g'))
                 FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
                 WHERE meal.recipe_code LIKE 'RI%'
                   AND NOT EXISTS (
                       SELECT 1
                       FROM abcdish.meal_categories category
                       WHERE category.meal_id = meal.id
+                        AND category.category_id = 'ri-section-' || LOWER(REGEXP_REPLACE(idea.section, '[^a-zA-Z0-9]+', '-', 'g'))
+                  )
+                """);
+
+        jdbcTemplate.execute("""
+                INSERT INTO abcdish.meal_categories (meal_id, category_id)
+                SELECT meal.id, 'ri-filter-' || LOWER(REGEXP_REPLACE(idea.filter_category, '[^a-zA-Z0-9]+', '-', 'g'))
+                FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
+                WHERE meal.recipe_code LIKE 'RI%'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM abcdish.meal_categories category
+                      WHERE category.meal_id = meal.id
+                        AND category.category_id = 'ri-filter-' || LOWER(REGEXP_REPLACE(idea.filter_category, '[^a-zA-Z0-9]+', '-', 'g'))
                   )
                 """);
 
         jdbcTemplate.execute("""
                 INSERT INTO abcdish.meal_ingredients (meal_id, ingredient)
-                SELECT meal.id, 'Verify generated recipe ingredients'
+                SELECT meal.id, INITCAP(TRIM(ingredient))
                 FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
+                CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(COALESCE(NULLIF(idea.key_ingredients, ''), 'Verify ingredients'), ',') ingredient
                 WHERE meal.recipe_code LIKE 'RI%'
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM abcdish.meal_ingredients ingredient
-                      WHERE ingredient.meal_id = meal.id
-                  )
+                  AND COALESCE(NULLIF(TRIM(ingredient), ''), '') <> ''
                 """);
 
         jdbcTemplate.execute("""
                 INSERT INTO abcdish.meal_steps (meal_id, step)
-                SELECT meal.id, 'Review AI-generated recipe video and captions'
+                SELECT meal.id, step
                 FROM abcdish.meals meal
+                JOIN abcdish.recipe_ideas idea ON meal.recipe_code = 'RI' || idea.id
+                CROSS JOIN LATERAL (
+                    VALUES
+                        ('Gather ingredients for ' || idea.recipe_name || ': ' || COALESCE(NULLIF(idea.key_ingredients, ''), 'verify ingredients from the recipe plan') || '.'),
+                        ('Prepare the ingredients and follow the ABCDish video plan for ' || idea.recipe_name || '.'),
+                        ('Cook using the selected style: ' || COALESCE(NULLIF(idea.filter_category, ''), 'ABCDish recipe') || '.'),
+                        ('Finish, taste, plate, and review captions/narration before publishing. Notes: ' || COALESCE(NULLIF(idea.launch_notes, ''), 'ready for editorial review') || '.')
+                ) steps(step)
                 WHERE meal.recipe_code LIKE 'RI%'
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM abcdish.meal_steps step
-                      WHERE step.meal_id = meal.id
-                  )
                 """);
     }
 
