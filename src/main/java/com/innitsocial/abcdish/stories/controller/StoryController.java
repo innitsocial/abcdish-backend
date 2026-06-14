@@ -26,4 +26,9 @@ public class StoryController {
     public StoryResponse createStory(@Valid @RequestBody StoryRequest request) {
         return storyService.createStory(SecurityUtils.currentUserId(), request);
     }
+
+    @DeleteMapping("/{id}")
+    public void deleteStory(@PathVariable Long id) {
+        storyService.deleteStory(SecurityUtils.currentUserId(), id);
+    }
 }

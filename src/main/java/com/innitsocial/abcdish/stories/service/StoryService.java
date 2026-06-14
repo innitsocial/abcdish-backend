@@ -58,6 +58,17 @@ public class StoryService {
         return StoryResponse.fromEntity(story, user);
     }
 
+    public void deleteStory(Long userId, Long storyId) {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new RuntimeException("Story not found"));
+
+        if (!story.getUserId().equals(userId)) {
+            throw new RuntimeException("You can only remove your own story");
+        }
+
+        storyRepository.delete(story);
+    }
+
     private StoryResponse toResponse(Story story) {
         AppUser user = appUserRepository.findById(story.getUserId())
                 .orElseThrow(() -> new RuntimeException("Story user not found"));
