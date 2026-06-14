@@ -1,13 +1,9 @@
 package com.innitsocial.abcdish.content.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-
 import java.util.List;
 
-public record MealRequestDto(
-        @NotBlank String title,
+public record RecipeDraftResponse(
+        String title,
         String description,
         String imageUrl,
         String videoUrl,
@@ -15,15 +11,17 @@ public record MealRequestDto(
         String trailerType,
         String promoTrailerTitle,
         String promoTrailerSubtitle,
-        @NotNull Integer duration,
+        Integer duration,
         String complexity,
         String affordability,
-        @NotEmpty List<String> categories,
-        @NotEmpty List<String> ingredients,
-        @NotEmpty List<String> steps,
+        List<String> categories,
+        List<String> ingredients,
+        List<String> steps,
         boolean glutenFree,
         boolean lactoseFree,
         boolean vegan,
-        boolean vegetarian
+        boolean vegetarian,
+        String extractionStatus,
+        String extractionMessage
 ) {
 }

@@ -79,6 +79,10 @@ public class MediaService {
         return uploadVideo(file, request, "recipe-trailer", "recipe-trailers", "Recipe trailer uploaded");
     }
 
+    public MediaUploadResponse uploadRecipeVideo(MultipartFile file, HttpServletRequest request) {
+        return uploadVideo(file, request, "recipe-video", "recipe-videos", "Recipe video uploaded");
+    }
+
     private MediaUploadResponse uploadVideo(
             MultipartFile file,
             HttpServletRequest request,

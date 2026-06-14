@@ -42,6 +42,14 @@ public class MediaController {
         return mediaService.uploadRecipeTrailer(file, request);
     }
 
+    @PostMapping("/recipe-video")
+    public MediaUploadResponse uploadRecipeVideo(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request
+    ) {
+        return mediaService.uploadRecipeVideo(file, request);
+    }
+
     @GetMapping("/files/{fileName}")
     public ResponseEntity<Resource> getFile(@PathVariable String fileName) {
         return mediaService.getFile(fileName);

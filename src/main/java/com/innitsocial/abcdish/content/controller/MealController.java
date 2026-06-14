@@ -2,7 +2,10 @@ package com.innitsocial.abcdish.content.controller;
 
 import com.innitsocial.abcdish.content.dto.MealRequestDto;
 import com.innitsocial.abcdish.content.dto.MealResponseDto;
+import com.innitsocial.abcdish.content.dto.RecipeDraftRequest;
+import com.innitsocial.abcdish.content.dto.RecipeDraftResponse;
 import com.innitsocial.abcdish.content.service.MealService;
+import com.innitsocial.abcdish.content.service.RecipeDraftService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,7 @@ import java.util.List;
 public class MealController {
 
     private final MealService mealService;
+    private final RecipeDraftService recipeDraftService;
 
     @DeleteMapping("/{id}")
     public void deleteMeal(@PathVariable Long id) {
@@ -45,6 +49,11 @@ public class MealController {
     @PostMapping
     public MealResponseDto createMeal(@Valid @RequestBody MealRequestDto request) {
         return MealResponseDto.fromEntity(mealService.create(request));
+    }
+
+    @PostMapping("/draft")
+    public RecipeDraftResponse createDraft(@RequestBody RecipeDraftRequest request) {
+        return recipeDraftService.createDraft(request);
     }
 
     @PutMapping("/{id}")

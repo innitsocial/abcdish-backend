@@ -36,6 +36,15 @@ public class Meal {
     @Column(name = "trailer_url", length = 1000)
     private String trailerUrl;
 
+    @Column(name = "trailer_type")
+    private String trailerType;
+
+    @Column(name = "promo_trailer_title")
+    private String promoTrailerTitle;
+
+    @Column(name = "promo_trailer_subtitle", length = 1000)
+    private String promoTrailerSubtitle;
+
     private Integer duration;
 
     private String complexity;

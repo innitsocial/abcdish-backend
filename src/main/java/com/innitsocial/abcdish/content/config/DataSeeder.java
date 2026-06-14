@@ -77,6 +77,7 @@ public class DataSeeder implements CommandLineRunner {
                             .imageUrl("https://images.unsplash.com/photo-1603894584373-5ac82b2ae398")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerType("VIDEO")
                             .duration(35)
                             .complexity("medium")
                             .affordability("affordable")
@@ -109,6 +110,7 @@ public class DataSeeder implements CommandLineRunner {
                             .imageUrl("https://images.unsplash.com/photo-1541519227354-08fa5d50c44d")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerType("VIDEO")
                             .duration(10)
                             .complexity("simple")
                             .affordability("affordable")
@@ -140,6 +142,7 @@ public class DataSeeder implements CommandLineRunner {
                             .imageUrl("https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9")
                             .videoUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
                             .trailerUrl("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                            .trailerType("VIDEO")
                             .duration(20)
                             .complexity("simple")
                             .affordability("affordable")
@@ -203,6 +206,18 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.meals
                     ADD COLUMN IF NOT EXISTS trailer_url VARCHAR(1000)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS trailer_type VARCHAR(255)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS promo_trailer_title VARCHAR(255)
+                    """);
+            jdbcTemplate.execute("""
+                    ALTER TABLE IF EXISTS abcdish.meals
+                    ADD COLUMN IF NOT EXISTS promo_trailer_subtitle VARCHAR(1000)
                     """);
             jdbcTemplate.execute("""
                     ALTER TABLE IF EXISTS abcdish.meals

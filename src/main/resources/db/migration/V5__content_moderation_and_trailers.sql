@@ -2,6 +2,15 @@ ALTER TABLE IF EXISTS abcdish.meals
     ADD COLUMN IF NOT EXISTS trailer_url VARCHAR(1000);
 
 ALTER TABLE IF EXISTS abcdish.meals
+    ADD COLUMN IF NOT EXISTS trailer_type VARCHAR(255);
+
+ALTER TABLE IF EXISTS abcdish.meals
+    ADD COLUMN IF NOT EXISTS promo_trailer_title VARCHAR(255);
+
+ALTER TABLE IF EXISTS abcdish.meals
+    ADD COLUMN IF NOT EXISTS promo_trailer_subtitle VARCHAR(1000);
+
+ALTER TABLE IF EXISTS abcdish.meals
     ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(255) DEFAULT 'APPROVED';
 
 ALTER TABLE IF EXISTS abcdish.meals
