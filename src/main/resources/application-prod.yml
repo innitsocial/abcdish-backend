@@ -51,7 +51,12 @@ management:
         include: health,info,metrics
   endpoint:
     health:
+      probes:
+        enabled: true
       show-details: never
+  health:
+    mail:
+      enabled: false
 
 app:
   notifications:
